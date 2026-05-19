@@ -1,0 +1,12 @@
+{
+  "name": "research-driven-pi-mas",
+  "version": "1.0.0",
+  "description": "Research-driven multi-agent system for pi, implementing 18 research papers on MAS, self-evolution, lifelong learning, and LLM-as-a-judge evaluation.",
+  "keywords": ["pi-package"],
+  "license": "MIT",
+  "pi": {
+    "extensions": [".pi/extensions"],
+    "skills": [".pi/skills"],
+    "prompts": [".pi/prompts"]
+  }
+}
