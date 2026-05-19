@@ -1,0 +1,55 @@
+# Dependencies
+node_modules/
+.pnp
+.pnp.js
+
+# Build output
+dist/
+build/
+out/
+*.js.map
+*.d.ts.map
+
+# Environment & secrets
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+secrets/
+
+# Pi agent runtime
+.pi/runs/**
+.pi/memory/**
+.pi/evals/judge-corpus/**
+.pi/curricula/**
+.pi/sessions/**
+.pi/logs/**
+*.pi-session
+
+# OS
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V7
+.Trashes
+Thumbs.db
+desktop.ini
+
+# Editor
+.vscode/settings.json
+.idea/
+*.swp
+*.swo
+*~
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Lock files (keep package-lock or yarn.lock, not both)
+yarn.lock
+pnpm-lock.yaml
