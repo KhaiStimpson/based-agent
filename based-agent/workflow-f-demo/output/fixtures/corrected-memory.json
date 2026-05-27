@@ -1,0 +1,19 @@
+{
+  "id": "mem-demo-provenance-first",
+  "type": "heuristic",
+  "scope": "repo",
+  "status": "provisional",
+  "source": "episode",
+  "salience": "failure-linked",
+  "content": "Keep memory proposals provisional until deterministic evidence supports promotion to validated.",
+  "confidence": "high",
+  "created_at": "2026-05-27T00:00:00.000Z",
+  "last_validated_at": "2026-05-27T00:00:00.000Z",
+  "metadata": {
+    "provenance": {
+      "artifact_ref": "output/run/failure-attribution.json",
+      "confirmed_by": "node scripts/validate-memory.mjs templates/fixtures/invalid-memory.json --expect-fail"
+    },
+    "promotion_requirement": "Run holdout evaluations before status becomes validated."
+  }
+}

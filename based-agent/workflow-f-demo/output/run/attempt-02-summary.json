@@ -1,0 +1,32 @@
+{
+  "attempt_id": "demo-attempt-02-provisional-with-evidence",
+  "hypothesis": "A provisional heuristic with failure provenance preserves learning without overpromotion.",
+  "files_inspected": [
+    "output/run/failure-attribution.json",
+    "templates/fixtures/corrected-memory.json"
+  ],
+  "files_changed": [
+    "output/fixtures/corrected-memory.json",
+    "output/memory/heuristic.json"
+  ],
+  "commands_run": [
+    "node scripts/validate-memory.mjs templates/fixtures/corrected-memory.json - exit 0 - valid provisional memory"
+  ],
+  "tests_passed": [
+    "corrected memory fixture accepted"
+  ],
+  "tests_failed": [],
+  "progress_made": [
+    "repaired memory lifecycle violation",
+    "retained provenance-linked lesson"
+  ],
+  "failure_modes": [],
+  "remaining_risks": [
+    "heuristic is not validated until future holdout runs"
+  ],
+  "reusable_insights": [
+    "provisional is the safe starting status for learned heuristics"
+  ],
+  "verdict": "candidate",
+  "saved_at": "2026-05-27T00:00:00.000Z"
+}

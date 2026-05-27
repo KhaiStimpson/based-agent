@@ -1,0 +1,24 @@
+{
+  "name": "ralph-loop",
+  "version": "0.1.0",
+  "description": "RALPH — Research, Analyze, Learn, Propose, Human-approve. A continuous deep-research loop that crawls arxiv and GitHub, distills insights with local Ollama models, and generates ranked improvement proposals for the based-agent MAS.",
+  "type": "module",
+  "scripts": {
+    "start": "tsx src/index.ts",
+    "dev": "tsx watch src/index.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@earendil-works/pi-coding-agent": "^0.74.1",
+    "express": "^4.18.2",
+    "fast-xml-parser": "^4.3.4",
+    "uuid": "^9.0.0"
+  },
+  "devDependencies": {
+    "@types/express": "^4.17.21",
+    "@types/node": "^20.10.0",
+    "@types/uuid": "^9.0.7",
+    "tsx": "^4.7.0",
+    "typescript": "^5.3.2"
+  }
+}

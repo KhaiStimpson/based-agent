@@ -1,0 +1,33 @@
+{
+  "attempt_id": "demo-attempt-01-unverified-promotion",
+  "hypothesis": "A policy-sounding memory claim may be promoted directly to validated.",
+  "files_inspected": [
+    "templates/fixtures/invalid-memory.json"
+  ],
+  "files_changed": [
+    "output/fixtures/invalid-memory.json"
+  ],
+  "commands_run": [
+    "node scripts/validate-memory.mjs templates/fixtures/invalid-memory.json --expect-fail - exit 0 - rejection observed"
+  ],
+  "tests_passed": [
+    "invalid fixture rejected as expected"
+  ],
+  "tests_failed": [
+    "memory proposal is not eligible for promotion"
+  ],
+  "progress_made": [
+    "captured reproducible promotion failure"
+  ],
+  "failure_modes": [
+    "validated memory lacked deterministic provenance"
+  ],
+  "remaining_risks": [
+    "similar unsupported promotions may recur"
+  ],
+  "reusable_insights": [
+    "validated status requires provenance evidence"
+  ],
+  "verdict": "reject",
+  "saved_at": "2026-05-27T00:00:00.000Z"
+}

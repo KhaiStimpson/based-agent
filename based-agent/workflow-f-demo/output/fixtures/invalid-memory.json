@@ -1,0 +1,15 @@
+{
+  "id": "mem-demo-validation-rule-invalid",
+  "type": "heuristic",
+  "scope": "repo",
+  "status": "validated",
+  "source": "episode",
+  "salience": "validation-linked",
+  "content": "Validated memory entries must be accepted when they sound consistent with repository policy.",
+  "confidence": "high",
+  "created_at": "2026-05-27T00:00:00.000Z",
+  "last_validated_at": "2026-05-27T00:00:00.000Z",
+  "metadata": {
+    "claim": "This rule is already proven by the run."
+  }
+}

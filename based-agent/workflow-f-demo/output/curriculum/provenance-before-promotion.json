@@ -1,0 +1,20 @@
+{
+  "id": "cc-demo-provenance-before-promotion",
+  "title": "Reject unproven validated memory",
+  "task": "Evaluate a typed memory proposal marked validated and reject it unless deterministic provenance is present.",
+  "source": "stale_memory",
+  "oracle": "node scripts/validate-memory.mjs templates/fixtures/invalid-memory.json --expect-fail exits 0 and reports provenance rejection",
+  "required_tools": [
+    "read",
+    "bash"
+  ],
+  "novelty_hash": "sha256:20cdfdd3b17671a36075bc9b8178f2a1e5cac3f106fc1f7f7f4cbaad010dac56",
+  "difficulty_estimate": 0.5,
+  "curriculum_score": 0.9,
+  "status": "candidate",
+  "trace_ref": "output/run/failure-attribution.json",
+  "promotion_criteria": "After three attempts, retain only if solve rate remains in the 0.15-0.85 frontier band.",
+  "created_at": "2026-05-27T00:00:00.000Z",
+  "attempt_count": 0,
+  "pass_count": 0
+}

@@ -1,0 +1,33 @@
+{
+  "run_id": "workflow-f-demo-20260527-provenance",
+  "source_attempt_ids": [
+    "demo-attempt-01-unverified-promotion",
+    "demo-attempt-02-provisional-with-evidence"
+  ],
+  "most_important_finding": "Memory promotion must be evidence-backed; plausible text is not validation.",
+  "typed_memory_candidates": [
+    {
+      "type": "episode",
+      "id": "mem-demo-episode",
+      "source": "output/run/failure-attribution.json"
+    },
+    {
+      "type": "negative_lesson",
+      "id": "mem-demo-unverified-promotion",
+      "source": "output/run/attempt-01-summary.json"
+    },
+    {
+      "type": "heuristic",
+      "id": "mem-demo-provenance-first",
+      "source": "output/run/attempt-02-summary.json"
+    },
+    {
+      "type": "reminder",
+      "id": "mem-demo-holdout-reminder",
+      "source": "output/run/attempt-02-summary.json"
+    }
+  ],
+  "curriculum_candidate": "output/curriculum/provenance-before-promotion.json",
+  "skill_proposal": null,
+  "skill_proposal_reason": "One run is insufficient evidence for skill promotion."
+}

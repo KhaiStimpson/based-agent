@@ -1,0 +1,19 @@
+{
+  "scope": "repo",
+  "source": "episode",
+  "created_at": "2026-05-27T00:00:00.000Z",
+  "last_validated_at": "2026-05-27T00:00:00.000Z",
+  "id": "mem-demo-episode",
+  "type": "episode",
+  "status": "provisional",
+  "salience": "failure-linked",
+  "content": "A validated memory proposal was rejected for missing provenance; a provisional evidence-linked repair passed.",
+  "confidence": "high",
+  "metadata": {
+    "run_id": "workflow-f-demo-20260527-provenance",
+    "attempt_ids": [
+      "demo-attempt-01-unverified-promotion",
+      "demo-attempt-02-provisional-with-evidence"
+    ]
+  }
+}

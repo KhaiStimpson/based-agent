@@ -1,0 +1,57 @@
+{
+  "postmortem_id": "demo-pm-provenance-before-promotion",
+  "task_ref": "Promote a validation-memory rule safely",
+  "attempt_ids": [
+    "demo-attempt-01-unverified-promotion"
+  ],
+  "failure": {
+    "symptom": "The validator rejected a memory item marked validated.",
+    "category": "memory",
+    "confidence": "high"
+  },
+  "location": {
+    "agent": "memory-curator",
+    "step": "promotion gate",
+    "file": "output/fixtures/invalid-memory.json",
+    "line": null,
+    "tool": "validate-memory.mjs"
+  },
+  "propagation": [
+    "trigger: proposed validated status without provenance",
+    "memory validator found no confirmed_by evidence",
+    "promotion was rejected"
+  ],
+  "evidence": [
+    {
+      "type": "command_output",
+      "ref": "node scripts/validate-memory.mjs templates/fixtures/invalid-memory.json --expect-fail",
+      "content": "validated memory requires metadata.provenance.artifact_ref and confirmed_by",
+      "supports": "The proposal violates provenance requirements."
+    }
+  ],
+  "repair": {
+    "action": "Keep the learned rule provisional and attach attribution evidence.",
+    "files_changed": [
+      "output/fixtures/corrected-memory.json"
+    ],
+    "commands_run": [
+      "node scripts/validate-memory.mjs templates/fixtures/corrected-memory.json"
+    ],
+    "outcome": "fixed"
+  },
+  "validation": {
+    "commands": [
+      "node scripts/validate-memory.mjs templates/fixtures/corrected-memory.json - exit 0"
+    ],
+    "verdict": "confirmed_fixed"
+  },
+  "systemic_changes": [
+    {
+      "artifact": "memory",
+      "description": "Retain a provenance-first heuristic as provisional until holdout evidence exists.",
+      "urgency": "medium"
+    }
+  ],
+  "curriculum_candidate": true,
+  "curriculum_oracle": "node scripts/validate-memory.mjs templates/fixtures/invalid-memory.json --expect-fail"
+}
