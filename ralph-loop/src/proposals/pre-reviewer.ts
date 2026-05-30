@@ -22,6 +22,10 @@ interface RawBatch {
   riskNotes: string[];
   batchScore: number;
   applyOrder?: string[];
+  applyMode?: 'individual' | 'custom-merged' | 'manual';
+  mergedPatch?: string | null;
+  mergeRationale?: string;
+  mergeWarnings?: string[];
 }
 
 interface RawConflict {
@@ -79,7 +83,7 @@ function normalizeReport(parsed: unknown): RawReport | null {
   };
 }
 
-function compactProposal(p: Proposal): string {
+function compactProposal(p: Proposal, includePatch = true): string {
   return [
     `ID: ${p.id}`,
     `TITLE: ${p.title}`,
@@ -89,16 +93,19 @@ function compactProposal(p: Proposal): string {
     `CHANGE: ${p.suggestedChange}`,
     `EVIDENCE: ${(p.evidence ?? []).map((e) => e.title).slice(0, 3).join(' | ')}`,
     `HAS_PATCH: ${p.patch ? 'yes' : 'no'}`,
-  ].join('\n');
+    includePatch && p.patch ? `PATCH_PREVIEW:\n\`\`\`diff\n${p.patch.slice(0, 2400)}\n\`\`\`` : '',
+  ].filter(Boolean).join('\n');
 }
 
-function buildPrompt(pending: Proposal[], cycleId: number): string {
+function buildPrompt(pending: Proposal[], cycleId: number, compact = false): string {
   const proposals = pending
     .sort((a, b) => b.score - a.score)
-    .map((p, i) => `### Proposal ${i + 1}\n${compactProposal(p)}`)
-    .join('\n\n---\n\n');
+    .map((p, i) => compact
+      ? `#${i + 1} ID:${p.id} SCORE:${p.score} TARGET:${p.targetFile} TITLE:${p.title.slice(0, 90)} CHANGE:${p.suggestedChange.slice(0, 160)} HAS_PATCH:${p.patch ? 'yes' : 'no'}`
+      : `### Proposal ${i + 1}\n${compactProposal(p, true)}`)
+    .join(compact ? '\n' : '\n\n---\n\n');
 
-  return `Review these pending proposals at the 24-hour human checkpoint.\n\nCycle: ${cycleId}\nPending proposals: ${pending.length}\n\n${proposals}\n\nInstructions:\n- Identify proposals that are complementary and should be accepted together.\n- Identify proposals that overlap or conflict.\n- For conflicts, provide BOTH: (a) prefer-best/defer-rest recommendation and (b) a mergeProposal option when useful.\n- Do not auto-approve. Human remains final authority.\n- Prefer smaller coherent batches over one giant batch unless all are clearly complementary.\n- Consider patch conflict risk, conceptual overlap, target file overlap, and implementation order.\n\nReturn JSON only:\n{\n  "summary": "<overall checkpoint recommendation>",\n  "batches": [\n    {\n      "title": "<batch name>",\n      "verdict": "accept-together|accept-individually|defer|reject|merge-option",\n      "proposalIds": ["<id>"],\n      "rationale": "<why this batch/verdict>",\n      "expectedBenefit": "<combined benefit>",\n      "riskNotes": ["<risk 1>"],\n      "batchScore": <0-100>,\n      "applyOrder": ["<id in recommended application order>"]\n    }\n  ],\n  "conflicts": [\n    {\n      "title": "<conflict title>",\n      "conflictingProposalIds": ["<id>"],\n      "preferredProposalIds": ["<best id(s)>"] ,\n      "deferredProposalIds": ["<defer id(s)>"] ,\n      "rationale": "<why>",\n      "mergeProposal": {\n        "title": "<optional merged alternative>",\n        "summary": "<summary>",\n        "suggestedChange": "<merged approach>",\n        "targetFile": "<optional target>",\n        "rationale": "<optional rationale>"\n      }\n    }\n  ]\n}`;
+  return `Review pending proposals at the 24-hour human checkpoint.\n\nCycle: ${cycleId}\nPending proposals: ${pending.length}\n\n${proposals}\n\nInstructions:\n- Prefer small, low-risk batches; do not combine proposals merely because they are pending.\n- Only use accept-together when patches are independent or intentionally integrated.\n- For overlapping patch proposals, prefer merge-option with a custom mergedPatch that combines compatible intent and drops risky/conflicting hunks.\n- If no safe combined patch is possible, recommend prefer-best/defer-rest or manual.\n- Flag overlaps/conflicts and explain risk reduction, not just apply order.\n- Human remains final authority.\n- HARD OUTPUT LIMITS: max 8 batches, max 6 conflicts, max 3 riskNotes per batch.\n- Keep every non-patch string under 220 characters. No paragraphs. No markdown outside JSON.\n\nReturn compact JSON only:\n{\n  "summary": "<one sentence>",\n  "batches": [\n    {\n      "title": "<short batch name>",\n      "verdict": "accept-together|accept-individually|defer|reject|merge-option",\n      "proposalIds": ["<id>"],\n      "rationale": "<one sentence>",\n      "expectedBenefit": "<one sentence>",\n      "riskNotes": ["<short risk>"],\n      "batchScore": <0-100>,\n      "applyOrder": ["<id>"],\n      "applyMode": "individual|custom-merged|manual",\n      "mergedPatch": "<optional unified diff using knowledge from included patches, or null>",\n      "mergeRationale": "<why this custom patch lowers risk>",\n      "mergeWarnings": ["<short risk>"]\n    }\n  ],\n  "conflicts": [\n    {\n      "title": "<short conflict title>",\n      "conflictingProposalIds": ["<id>"],\n      "preferredProposalIds": ["<id>"],\n      "deferredProposalIds": ["<id>"],\n      "rationale": "<one sentence>",\n      "mergeProposal": {\n        "title": "<short merged option>",\n        "summary": "<one sentence>",\n        "suggestedChange": "<one sentence>",\n        "targetFile": "<optional>",\n        "rationale": "<one sentence>"\n      }\n    }\n  ]\n}`;
 }
 
 export async function runPreReview(pending: Proposal[], cycleId: number): Promise<PreReviewReport | null> {
@@ -112,14 +119,27 @@ export async function runPreReview(pending: Proposal[], cycleId: number): Promis
 
   let raw: string;
   try {
-    raw = await piComplete(buildPrompt(pending, cycleId), SYSTEM, 300_000);
+    raw = await piComplete(buildPrompt(pending, cycleId, false), SYSTEM, 300_000);
   } catch (e) {
     emit({ type: 'error', level: 'error', cycleId, message: `Cloud pre-review failed: ${String(e).slice(0, 120)}` });
     return null;
   }
 
-  const parsedUnknown = extractJSON<unknown>(raw);
-  const parsed = normalizeReport(parsedUnknown);
+  let parsed = normalizeReport(extractJSON<unknown>(raw));
+
+  // If the model over-produced and response was truncated, retry once with an ultra-compact prompt.
+  if (!parsed) {
+    const path = saveDebugResponse(raw);
+    emit({ type: 'warn', level: 'warn', cycleId, message: `Cloud pre-review JSON failed — saved to ${path}; retrying compact mode…` });
+    try {
+      raw = await piComplete(buildPrompt(pending, cycleId, true), SYSTEM, 300_000);
+      parsed = normalizeReport(extractJSON<unknown>(raw));
+    } catch (e) {
+      emit({ type: 'error', level: 'error', cycleId, message: `Compact pre-review retry failed: ${String(e).slice(0, 120)}` });
+      return null;
+    }
+  }
+
   if (!parsed) {
     const path = saveDebugResponse(raw);
     emit({ type: 'warn', level: 'warn', cycleId, message: `Cloud pre-review returned unparseable JSON — saved to ${path}` });
@@ -144,6 +164,10 @@ export async function runPreReview(pending: Proposal[], cycleId: number): Promis
       riskNotes: Array.isArray(b.riskNotes) ? b.riskNotes : [],
       batchScore: Math.min(100, Math.max(0, Number(b.batchScore) || 0)),
       applyOrder: (b.applyOrder ?? b.proposalIds ?? []).filter((id) => validIds.has(id)),
+      applyMode: b.applyMode ?? (b.mergedPatch ? 'custom-merged' : undefined),
+      mergedPatch: b.mergedPatch && b.mergedPatch.includes('---') ? b.mergedPatch : undefined,
+      mergeRationale: b.mergeRationale ?? '',
+      mergeWarnings: Array.isArray(b.mergeWarnings) ? b.mergeWarnings : [],
     })).filter((b) => b.proposalIds.length > 0),
     conflicts: (parsed.conflicts ?? []).map((c) => ({
       id: uuidv4(),

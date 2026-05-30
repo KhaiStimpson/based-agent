@@ -29,14 +29,19 @@ export async function extractKeywords(
     ...existingDynamic.slice(0, 20).map((s) => `${s.label} (×${s.frequency})`),
   ].join('\n- ');
 
-  // Compact insight list — keep per-item text short for small models
+  // Compact item list — prefer distilled insights, but fall back to title/abstract
+  // so seed discovery still works when the distiller kept relevant items with
+  // sparse insight fields.
   const insightText = items
-    .filter((i) => (i.insights?.length ?? 0) > 0)
-    .slice(0, 6)
-    .map((i) => `• ${i.title}: ${(i.insights ?? []).join('; ')}`)
+    .slice(0, 10)
+    .map((i) => {
+      const insights = (i.insights ?? []).filter(Boolean).join('; ');
+      const fallback = `${i.summary || i.abstract || ''}`.slice(0, 280);
+      return `• ${i.title}: ${insights || fallback}`;
+    })
     .join('\n');
 
-  if (!insightText) return [];
+  if (!insightText.trim()) return [];
 
   const prompt =
     `Current search topics (do NOT repeat these):\n- ${existingTerms}\n\n` +
@@ -61,12 +66,16 @@ export async function extractKeywords(
     const valid: SeedCandidate[] = [];
     for (const kw of result.keywords.slice(0, 4)) {
       if (!kw.label || !kw.query) continue;
-      // Skip if the query is suspiciously short (likely a hallucination)
-      if (kw.query.trim().split(/\s+/).length < 2) continue;
+      const query = String(kw.query).toLowerCase().replace(/[_+]+/g, ' ').replace(/\s+/g, ' ').trim();
+      // Skip if the query is suspiciously short/generic or duplicates a static seed label.
+      if (query.split(/\s+/).length < 2) continue;
+      if (/^(llm|ai|agent|agents|multi-agent|rag)$/i.test(query)) continue;
+      const githubQuery = String(kw.githubQuery || `${query} stars:>50`).trim();
+      if (/^https?:\/\//i.test(githubQuery)) continue;
       valid.push({
-        label: String(kw.label).slice(0, 80),
-        query: String(kw.query).toLowerCase().trim(),
-        githubQuery: String(kw.githubQuery || kw.query).trim(),
+        label: String(kw.label).replace(/[_+]+/g, ' ').slice(0, 80),
+        query,
+        githubQuery: githubQuery.includes('stars:') ? githubQuery : `${githubQuery} stars:>50`,
       });
     }
     return valid;

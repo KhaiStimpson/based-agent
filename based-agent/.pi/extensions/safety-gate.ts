@@ -99,20 +99,39 @@ const COMMAND_RULES: CommandRule[] = [
 // ─── Protected path patterns ──────────────────────────────────────────────────
 
 const PROTECTED_PATH_PATTERNS: Array<{ pattern: RegExp; reason: string }> = [
-  { pattern: /\/\.ssh\//i, reason: "SSH credentials" },
-  { pattern: /\/\.gnupg\//i, reason: "GPG keys" },
-  { pattern: /\/\.aws\//i, reason: "AWS credentials" },
-  { pattern: /\/\.config\/gcloud\//i, reason: "GCloud credentials" },
-  { pattern: /\/\.azure\//i, reason: "Azure credentials" },
+  { pattern: /(^|\/)\.pi\/evolution-approvals(\/|$)/i, reason: "manual evolution approval artifacts must be created outside agent tools" },
+  { pattern: /(^|\/)\.pi\/evolution-proposals(\/|$)/i, reason: "evolution proposal lifecycle is writable only by scanner/governor extension code" },
+  { pattern: /(^|\/)\.pi\/skills(\/|$)/i, reason: "validated skill proposals only; no direct agent write" },
+  { pattern: /(^|\/)\.pi\/memory(\/|$)/i, reason: "memory writes require authorized memory tooling" },
+  { pattern: /(^|\/)\.pi\/evals\/judge-corpus(\/|$)/i, reason: "judge corpus writes require schema validation" },
+  { pattern: /(^|\/)AGENTS\.md$/i, reason: "AGENTS.md changes require explicit human authorization" },
+  { pattern: /(^|\/)\.ssh\//i, reason: "SSH credentials" },
+  { pattern: /(^|\/)\.gnupg\//i, reason: "GPG keys" },
+  { pattern: /(^|\/)\.aws\//i, reason: "AWS credentials" },
+  { pattern: /(^|\/)\.config\/gcloud\//i, reason: "GCloud credentials" },
+  { pattern: /(^|\/)\.azure\//i, reason: "Azure credentials" },
   { pattern: /\/(etc\/passwd|etc\/shadow|etc\/sudoers)/i, reason: "System auth files" },
-  { pattern: /\/\.env(\.local|\.production|\.staging)?$/i, reason: "Environment secrets file" },
-  { pattern: /\/(secrets|credentials)\.(json|yaml|yml|toml)$/i, reason: "Credentials file" },
+  { pattern: /(^|\/)\.env(\.local|\.production|\.staging)?$/i, reason: "Environment secrets file" },
+  { pattern: /(^|\/)(secrets|credentials)\.(json|yaml|yml|toml)$/i, reason: "Credentials file" },
   { pattern: /node_modules\/.bin\//i, reason: "node_modules binary — edit package source instead" },
 ];
+
+const GOVERNED_EVOLUTION_PATH = /(^|[\s'"`>]|\/)\.pi[\\/]evolution-(approvals|proposals)([\\/\s'"`]|$)/i;
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function checkCommand(command: string): { shouldBlock: boolean; rule: CommandRule | null } {
+  if (GOVERNED_EVOLUTION_PATH.test(command)) {
+    return {
+      shouldBlock: true,
+      rule: {
+        pattern: GOVERNED_EVOLUTION_PATH,
+        description: "Shell access to governed evolution artifacts",
+        severity: "block",
+        reason: "Agents must not read, fabricate, or tamper approval/proposal lifecycle files through bash; use scanner/governor commands and external human approval artifacts.",
+      },
+    };
+  }
   for (const rule of COMMAND_RULES) {
     if (rule.pattern.test(command)) {
       return { shouldBlock: rule.severity === "block", rule };
@@ -171,8 +190,8 @@ export default function (pi: ExtensionAPI) {
       return undefined;
     }
 
-    // ─── Intercept write/edit tool_call ────────────────────────────────────
-    if (event.toolName === "write" || event.toolName === "edit" || event.toolName === "create") {
+    // ─── Intercept write/edit/create/delete tool_call ──────────────────────
+    if (event.toolName === "write" || event.toolName === "edit" || event.toolName === "create" || event.toolName === "delete") {
       const filePath = resolveWritePath(event.input as Record<string, unknown>);
       if (!filePath) return undefined;
 
@@ -233,9 +252,11 @@ export default function (pi: ExtensionAPI) {
         ...PROTECTED_PATH_PATTERNS.map((p) => `  🔒 ${p.pattern.source}: ${p.reason}`),
         "",
         "Additional rules:",
+        "  • Agent write/edit/create/delete tools are blocked from .pi/evolution-approvals/ and .pi/evolution-proposals/.",
+        "  • Any agent bash command referencing .pi/evolution-approvals/ or .pi/evolution-proposals/ is blocked.",
         "  • Writing to .pi/extensions/ triggers a warning (system permission scope).",
         "  • Use evolution-governor to propose changes to prompts, skills, and agents.",
-        "  • New tools/extensions/permissions require human-approved evolution proposals.",
+        "  • New tools/extensions/permissions require human-approved evolution proposals created outside the agent tool path.",
       ];
       ctx.ui.notify(lines.join("\n"), "info");
     },

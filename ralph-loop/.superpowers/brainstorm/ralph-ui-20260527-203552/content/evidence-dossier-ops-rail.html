@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RALPH - Evidence Dossier with Operations Rail</title>
+<style>
+  :root {
+    --bg:#080c0d; --panel:#101718; --raised:#141f20; --stroke:#253336;
+    --text:#ecf2eb; --muted:#86968f; --lime:#c1ff58; --cyan:#62dccf;
+    --amber:#ffc15a; --red:#ff7867; --paper:#f1eee6; --ink:#16201d;
+    --serif: Georgia, "Times New Roman", serif;
+    --mono: "IBM Plex Mono", "Cascadia Code", Consolas, monospace;
+    --sans: "Arial Narrow", "Roboto Condensed", Arial, sans-serif;
+  }
+  * { box-sizing:border-box; }
+  body {
+    margin:0; background:
+      radial-gradient(circle at 8% 0%, rgba(193,255,88,.09), transparent 26%),
+      linear-gradient(120deg, #080c0d, #0b1012);
+    min-height:100vh; color:var(--text); font-family:var(--sans);
+  }
+  .wrap { max-width:1500px; margin:auto; padding:27px 30px 34px; }
+  .prompt { margin-bottom:22px; }
+  .eyebrow { font:11px var(--mono); letter-spacing:.18em; color:var(--lime); margin-bottom:12px; }
+  h1 { font:500 46px/.98 var(--serif); letter-spacing:-.05em; margin:0 0 9px; }
+  .prompt p { font-size:15px; color:var(--muted); max-width:760px; margin:0; line-height:1.45; }
+  .layout {
+    border:1px solid var(--stroke); background:#0b1113; border-radius:19px;
+    padding:12px; min-height:655px; box-shadow:0 32px 75px rgba(0,0,0,.33);
+  }
+  .mast {
+    display:flex; height:55px; align-items:center; padding:0 18px;
+    border:1px solid var(--stroke); border-radius:10px; background:var(--panel); gap:16px;
+  }
+  .brand { font:700 17px var(--mono); letter-spacing:.22em; }
+  .brand em { font-style:normal; color:var(--lime); }
+  .mode { color:var(--muted); font:11px var(--mono); border-left:1px solid var(--stroke); padding-left:15px; }
+  .live { margin-left:auto; display:flex; align-items:center; gap:7px; font:11px var(--mono); color:var(--cyan); }
+  .dot { width:8px;height:8px;border-radius:50%;background:var(--cyan);box-shadow:0 0 12px var(--cyan); }
+  .metric { border-left:1px solid var(--stroke); padding-left:14px; font:11px var(--mono); color:var(--muted); }
+  .metric b { display:block; color:var(--text); font-size:14px; margin-top:2px; }
+  .checkpoint {
+    margin-top:10px; height:49px; display:flex; align-items:center; gap:14px; padding:0 16px;
+    border-radius:9px; border:1px solid rgba(255,193,90,.35); color:var(--amber);
+    background:rgba(255,193,90,.07); font:12px var(--mono);
+  }
+  .checkpoint b { letter-spacing:.12em; font-size:10px; }
+  .checkpoint span { color:#decfae; }
+  .checkpoint button, .resume {
+    margin-left:auto; background:var(--amber); border:0; padding:9px 14px; color:#1b1202;
+    font:bold 10px var(--mono); border-radius:5px; letter-spacing:.1em;
+  }
+  .work { display:grid; grid-template-columns:208px minmax(530px,1fr) 285px; gap:10px; margin-top:10px; height:519px; }
+  .left, .right, .dossier { border:1px solid var(--stroke); border-radius:10px; background:var(--panel); overflow:hidden; }
+  .section-head {
+    font:10px var(--mono); color:var(--muted); text-transform:uppercase; letter-spacing:.17em;
+    padding:15px 14px 10px;
+  }
+  .filter { display:flex; justify-content:space-between; padding:9px 14px; font:12px var(--mono); color:var(--muted); }
+  .filter.active { color:var(--lime); border-left:2px solid var(--lime); background:rgba(193,255,88,.06); padding-left:12px; }
+  .filter strong { font-weight:normal; color:var(--text); }
+  .queue-title { margin-top:13px; border-top:1px solid var(--stroke); }
+  .proposal { padding:12px 12px; border-top:1px solid #1d292b; }
+  .proposal.selected { background:#172224; border-left:2px solid var(--lime); padding-left:10px; }
+  .p-score { display:inline-block; width:30px; color:var(--lime); font:bold 13px var(--mono); }
+  .p-title { display:inline; color:var(--text); font-size:12px; line-height:1.3; }
+  .file { font:10px var(--mono); color:var(--muted); margin:7px 0 0 30px; }
+  .dossier { background:#101719; padding:0; display:flex; flex-direction:column; }
+  .dossier-top { padding:17px 20px 13px; border-bottom:1px solid var(--stroke); }
+  .crumb { font:10px var(--mono); color:var(--muted); letter-spacing:.13em; margin-bottom:10px; }
+  .title-row { display:flex; align-items:start; gap:14px; }
+  .ring {
+    width:55px; height:55px; flex:none; border:2px solid var(--lime); border-radius:50%; display:grid;
+    place-items:center; color:var(--lime); font:bold 17px var(--mono);
+  }
+  h2 { font:500 27px/1.02 var(--serif); letter-spacing:-.04em; margin:2px 0 6px; }
+  .sub { color:var(--muted); font-size:12px; line-height:1.45; }
+  .tabs { display:flex; padding:0 20px; height:43px; align-items:end; gap:23px; border-bottom:1px solid var(--stroke); }
+  .tab { padding:0 0 11px; font:11px var(--mono); color:var(--muted); }
+  .tab.active { color:var(--lime); border-bottom:2px solid var(--lime); }
+  .proof { padding:14px 20px; display:grid; grid-template-columns:1fr .94fr; gap:12px; flex:1; }
+  .block { border:1px solid var(--stroke); border-radius:7px; background:var(--raised); padding:11px; }
+  .small-label { font:9px var(--mono); color:var(--muted); letter-spacing:.17em; text-transform:uppercase; margin-bottom:10px; }
+  .source { padding:7px 0; border-bottom:1px solid #223034; }
+  .source:last-child { border-bottom:0; }
+  .source b { font-size:11px; display:block; line-height:1.3; font-weight:500; }
+  .source span { font:10px var(--mono); color:var(--cyan); }
+  .risk {
+    margin-top:11px; padding:10px; border:1px solid rgba(255,193,90,.29);
+    color:#e8d2a1; background:rgba(255,193,90,.04); font-size:11px; line-height:1.4;
+  }
+  .diff { font:10px/1.52 var(--mono); color:#9ca9a3; }
+  .diff .add { color:var(--lime); background:rgba(193,255,88,.05); display:block; padding:0 4px; }
+  .diff .meta { color:var(--cyan); display:block; margin-bottom:7px; }
+  .actions { border-top:1px solid var(--stroke); display:flex; justify-content:flex-end; gap:8px; padding:12px 20px; }
+  .btn { border-radius:5px; border:1px solid var(--stroke); background:transparent; color:var(--muted); font:11px var(--mono); padding:10px 16px; }
+  .btn.accept { background:var(--lime); color:#142004; border-color:var(--lime); font-weight:bold; }
+  .right { display:flex; flex-direction:column; background:#11191b; }
+  .health {
+    margin:0 12px; border:1px solid rgba(98,220,207,.3); border-radius:8px; padding:11px;
+    background:rgba(98,220,207,.04);
+  }
+  .statusrow { display:flex; justify-content:space-between; align-items:center; margin-bottom:11px; }
+  .statusrow strong { font:bold 12px var(--mono); color:var(--cyan); }
+  .statusrow span { font:10px var(--mono); color:var(--muted); }
+  .step { color:var(--text); font-size:12px; line-height:1.4; }
+  .pulse { margin-top:9px; height:3px; border-radius:9px; background:linear-gradient(90deg,var(--cyan),var(--cyan) 68%,#223235 68%); }
+  .vitals { display:grid; grid-template-columns:repeat(2,1fr); gap:7px; margin:11px 12px; }
+  .vital { border:1px solid var(--stroke); border-radius:7px; padding:9px; }
+  .vital .n { display:block; color:var(--text); font:bold 16px var(--mono); margin-top:6px; }
+  .vital .n.warn { color:var(--amber); }
+  .stream-head { display:flex; justify-content:space-between; align-items:center; border-top:1px solid var(--stroke); padding:13px 12px 8px; }
+  .expand { color:var(--cyan); font:10px var(--mono); }
+  .events { padding:0 12px; flex:1; }
+  .event { display:grid; grid-template-columns:47px 13px 1fr; gap:7px; padding:8px 0; border-top:1px solid #1e2a2d; font:10px/1.4 var(--mono); }
+  .event time { color:var(--muted); }
+  .event .success { color:var(--lime); }
+  .event .info { color:var(--cyan); }
+  .event .warning { color:var(--amber); }
+  .right-foot { padding:10px 12px 13px; border-top:1px solid var(--stroke); display:flex; gap:7px; }
+  .right-foot button { flex:1; padding:9px; border-radius:5px; border:1px solid var(--stroke); background:var(--raised); color:var(--cyan); font:10px var(--mono); }
+  .select {
+    margin-top:20px; border:1px solid rgba(193,255,88,.36); border-radius:10px; padding:14px 16px; display:flex;
+    align-items:center; gap:14px; cursor:pointer; transition:background .18s, border-color .18s;
+  }
+  .select:hover, .select.selected { background:rgba(193,255,88,.06); border-color:var(--lime); }
+  .select .letter { width:35px; height:35px; border:1px solid var(--lime); color:var(--lime); display:grid; place-items:center; font:bold 15px var(--mono); border-radius:50%; }
+  .select strong { display:block; font:500 20px var(--serif); }
+  .select span { display:block; color:var(--muted); font-size:13px; margin-top:2px; }
+  @media (max-width:1100px) { .work { grid-template-columns:180px 1fr; height:auto; } .right { grid-column:1 / -1; min-height:320px; } }
+</style>
+</head>
+<body>
+<main class="wrap">
+  <header class="prompt">
+    <div class="eyebrow">A / Evidence Dossier - refined</div>
+    <h1>Approval in the center. Operations within sight.</h1>
+    <p>The dossier remains the decision surface. A persistent right-hand operations rail exposes current phase, connection state, checkpoint condition, vitals, and recent live events, with an expand action for deeper monitoring.</p>
+  </header>
+  <div class="layout">
+    <header class="mast">
+      <div class="brand">R<em>A</em>LPH</div>
+      <div class="mode">RESEARCH LOOP / CLOUD</div>
+      <div class="live"><i class="dot"></i> EVENT STREAM LIVE</div>
+      <div class="metric">CYCLE<b>389</b></div>
+      <div class="metric">PENDING<b style="color:var(--lime)">87</b></div>
+    </header>
+    <div class="checkpoint">
+      <b>CHECKPOINT REACHED</b>
+      <span>Review proposal evidence and risk before returning the loop to research.</span>
+      <button>CONTINUE RESEARCH</button>
+    </div>
+    <section class="work">
+      <nav class="left">
+        <div class="section-head">Review queue</div>
+        <div class="filter active">Pending <strong>87</strong></div>
+        <div class="filter">Approved <strong>0</strong></div>
+        <div class="filter">Apply failed <strong>0</strong></div>
+        <div class="queue-title section-head">Highest score</div>
+        <div class="proposal selected">
+          <span class="p-score">94</span><span class="p-title">Judge bias sentinel</span>
+          <div class="file">judge-bias-sentinel.ts</div>
+        </div>
+        <div class="proposal">
+          <span class="p-score" style="color:var(--amber)">91</span><span class="p-title">Evolving memory guards</span>
+          <div class="file">evo-memory-governor.ts</div>
+        </div>
+        <div class="proposal">
+          <span class="p-score" style="color:var(--amber)">91</span><span class="p-title">Trajectory auditing</span>
+          <div class="file">trajectory-auditor.ts</div>
+        </div>
+      </nav>
+      <article class="dossier">
+        <div class="dossier-top">
+          <div class="crumb">PROPOSAL DOSSIER / SECURITY + EVALUATION / CLOUD GENERATED</div>
+          <div class="title-row">
+            <div class="ring">94</div>
+            <div>
+              <h2>Add judge bias sentinel and counterfactual packets</h2>
+              <div class="sub">Create anonymized, order-swapped judge packets and log bias diagnostics before a proposal may promote.</div>
+            </div>
+          </div>
+        </div>
+        <div class="tabs">
+          <span class="tab active">EVIDENCE + RISK</span>
+          <span class="tab">PATCH</span>
+          <span class="tab">SCORE HISTORY</span>
+          <span class="tab">RATIONALE</span>
+        </div>
+        <div class="proof">
+          <section class="block">
+            <div class="small-label">Evidence trail / 6 papers</div>
+            <div class="source"><b>Do not judge code by its cover</b><span>7 / 10 relevance - code evaluation bias</span></div>
+            <div class="source"><b>Pairwise or pointwise protocols</b><span>8 / 10 relevance - protocol instability</span></div>
+            <div class="source"><b>Self-preference bias</b><span>7 / 10 relevance - identity masking</span></div>
+            <div class="risk"><strong>Risk watch:</strong> This introduces a new promotion gate and persisted diagnostics. Confirm schema, write paths, and escalation cost.</div>
+          </section>
+          <section class="block">
+            <div class="small-label">Patch preview / new extension</div>
+            <div class="diff">
+              <span class="meta">+++ .pi/extensions/judge-bias-sentinel.ts</span>
+              <span class="add">+ type BiasProbeKind =</span>
+              <span class="add">+   | "order_swap"</span>
+              <span class="add">+   | "identity_mask"</span>
+              <span class="add">+ function buildBiasProbePackets(...)</span>
+              <span class="add">+ escalation_policy:</span>
+              <span class="add">+   "require_cross_model_panel"</span>
+              <br>
+              <span>Target: new extension / 180 additions</span>
+            </div>
+          </section>
+        </div>
+        <footer class="actions">
+          <button class="btn">REJECT</button>
+          <button class="btn">REQUEST REVIEW</button>
+          <button class="btn accept">APPROVE + APPLY</button>
+        </footer>
+      </article>
+      <aside class="right">
+        <div class="section-head">Operations rail</div>
+        <section class="health">
+          <div class="statusrow"><strong><i class="dot" style="display:inline-block;margin-right:7px"></i> CHECKPOINT</strong><span>SSE CONNECTED</span></div>
+          <div class="small-label">Currently</div>
+          <div class="step">Awaiting human review before resuming the research loop.</div>
+          <div class="pulse"></div>
+        </section>
+        <div class="vitals">
+          <div class="vital"><div class="small-label">Last cycle</div><span class="n">24s</span></div>
+          <div class="vital"><div class="small-label">Research</div><span class="n">378</span></div>
+          <div class="vital"><div class="small-label">Proposals</div><span class="n">87</span></div>
+          <div class="vital"><div class="small-label">Attention</div><span class="n warn">PAUSED</span></div>
+        </div>
+        <div class="stream-head"><div class="small-label" style="margin:0">Live activity</div><span class="expand">EXPAND FEED -></span></div>
+        <div class="events">
+          <div class="event"><time>20:12</time><b class="warning">!</b><span>24-hour checkpoint reached</span></div>
+          <div class="event"><time>19:55</time><b class="success">+</b><span>Cycle #389 complete in 24s</span></div>
+          <div class="event"><time>19:54</time><b class="info">i</b><span>Re-ranking pending proposals</span></div>
+          <div class="event"><time>19:54</time><b class="info">i</b><span>Crawling seed sources</span></div>
+        </div>
+        <div class="right-foot">
+          <button>OPEN ACTIVITY LOG</button>
+          <button>HEALTH DETAIL</button>
+        </div>
+      </aside>
+    </section>
+  </div>
+  <div class="select" data-choice="approve-dossier-ops-rail" onclick="toggleSelect(this)">
+    <div class="letter">A+</div>
+    <div>
+      <strong>Use the Evidence Dossier with Operations Rail</strong>
+      <span>Persistent live status, quick vitals, and expandable activity while evidence and patch risk stay central.</span>
+    </div>
+  </div>
+</main>
+</body>
+</html>

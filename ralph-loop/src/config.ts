@@ -72,6 +72,7 @@ export const config = {
   loop: {
     cycleMinutes:           envInt('CYCLE_MINUTES', 75),
     checkpointHours:        envInt('CHECKPOINT_HOURS', 24),
+    seedsPerCycle:          envInt('SEEDS_PER_CYCLE', 4),
     arxivResultsPerQuery:   envInt('ARXIV_RESULTS_PER_QUERY', 8),
     githubResultsPerQuery:  envInt('GITHUB_RESULTS_PER_QUERY', 5),
     minRelevance:           envInt('MIN_RELEVANCE', 6),

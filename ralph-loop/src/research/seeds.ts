@@ -118,6 +118,43 @@ export const SEEDS: Seed[] = [
     arxiv: { query: 'hallucination+reduction+grounding+LLM', categories: ['cs.CL', 'cs.AI'] },
     github: { query: 'LLM hallucination reduction grounding stars:>100' },
   },
+  // ── Emerging agent operations ─────────────────────────────────────────────
+  {
+    id: 'agent-context-engineering',
+    label: 'Agent Context Engineering',
+    arxiv: { query: 'context+engineering+LLM+agents+memory', categories: ['cs.AI', 'cs.CL'] },
+    github: { query: 'context engineering LLM agent memory stars:>50' },
+  },
+  {
+    id: 'agent-runtime-evaluation',
+    label: 'Runtime Agent Evaluation',
+    arxiv: { query: 'runtime+evaluation+LLM+agents+production', categories: ['cs.AI', 'cs.SE'] },
+    github: { query: 'LLM agent runtime evaluation telemetry stars:>50' },
+  },
+  {
+    id: 'agent-failure-attribution',
+    label: 'Agent Failure Attribution',
+    arxiv: { query: 'failure+attribution+LLM+agents+debugging', categories: ['cs.AI', 'cs.SE'] },
+    github: { query: 'LLM agent failure attribution debugging stars:>50' },
+  },
+  {
+    id: 'multi-agent-verification',
+    label: 'Multi-Agent Verification',
+    arxiv: { query: 'multi-agent+verification+LLM+agents', categories: ['cs.AI', 'cs.SE'] },
+    github: { query: 'multi-agent verification LLM agents stars:>50' },
+  },
+  {
+    id: 'agent-tool-use-reliability',
+    label: 'Tool-Use Reliability',
+    arxiv: { query: 'tool+use+reliability+LLM+agents', categories: ['cs.AI', 'cs.CL'] },
+    github: { query: 'LLM tool use reliability agents stars:>50' },
+  },
+  {
+    id: 'computer-use-agents',
+    label: 'Computer-Use Agents',
+    arxiv: { query: 'computer+use+agents+GUI+LLM', categories: ['cs.AI', 'cs.HC'] },
+    github: { query: 'computer use agents GUI LLM stars:>50' },
+  },
 ];
 
 import type { DynamicSeed } from '../types.js';

@@ -498,7 +498,7 @@ Each of the 12 principles from the research report is mapped to its implementing
 | Component | Human involvement required | Automation available |
 |---|---|---|
 | **Workflow E (self-evolution)** | Human approval required for: prompt/agent/topology/routing changes, any tool permission expansion, new extension code | Automatic for: episode summaries, negative lessons, individual fact/heuristic entries with direct evidence |
-| **Evolution-governor** | `approve_evolution` requires human confirmation for artifacts with `autonomy: human-approved-only` | Endure gate check is automated; Excel gate evaluation is agent-assisted |
+| **Evolution-governor** | No agent-callable approval tool; approval requires a manual `.pi/evolution-approvals/<id>.json` artifact with matching proposal id/fingerprint, actor, and notes before `/evolution-approve <id>` and promotion can proceed | Safety/regression gate checks are automated; Excel gate evaluation is agent-assisted |
 | **Memory hard-deletion** | Bulk deletion of `.pi/memory/` items requires human sign-off (AGENTS.md Section 5.4) | Deprecation and contradiction marking are automated via memory-curator |
 | **Security reviews** | New extensions, tool permissions, sandbox policy changes require human security review | Safety-gate extension blocks common destructive patterns automatically |
 | **Judge spot-check** | Human spot-check agreement is tracked as a calibration metric (no fixed target, track trend) | Position-consistency, known-pair accuracy, and verbosity-bias rate are automated |

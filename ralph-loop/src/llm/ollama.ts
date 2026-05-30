@@ -120,13 +120,25 @@ export function extractJSON<T>(text: string): T | null {
     }
   }
 
-  // 2. Brace-match: try [ before { so arrays are preferred over single objects.
-  //    (A model might return [{...}] and the { match would grab just the first
-  //    object, succeeding but returning the wrong type.)
-  for (const startChar of ['[', '{'] as const) {
+  // 2. Raw response first. In Ollama JSON mode this is usually the correct
+  //    top-level value; trying bracket matches first can accidentally parse a
+  //    nested array (for example the `insights` field) as the whole result.
+  candidates.push(text.trim());
+
+  // 3. Brace-match the first top-level-looking JSON value in the response.
+  //    Prefer whichever of { or [ appears earliest, rather than always trying
+  //    arrays first, so objects containing arrays are parsed as objects.
+  const starts = ['{', '['] as const;
+  const firstStart = starts
+    .map((char) => ({ char, index: text.indexOf(char) }))
+    .filter((entry) => entry.index !== -1)
+    .sort((a, b) => a.index - b.index)[0];
+
+  if (firstStart) {
+    const startChar = firstStart.char;
     const endChar = startChar === '[' ? ']' : '}';
     let depth = 0, start = -1, inStr = false, esc = false;
-    for (let i = 0; i < text.length; i++) {
+    for (let i = firstStart.index; i < text.length; i++) {
       const c = text[i];
       if (esc)                 { esc = false; continue; }
       if (c === '\\' && inStr) { esc = true;  continue; }
@@ -138,7 +150,6 @@ export function extractJSON<T>(text: string): T | null {
       }
     }
   }
-  candidates.push(text.trim());
 
   // 3. Try each candidate: direct → repaired (control-char + trailing-comma fix)
   for (const raw of candidates) {

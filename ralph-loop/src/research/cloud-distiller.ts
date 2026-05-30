@@ -22,7 +22,9 @@ import { piComplete } from '../llm/pi-client.js';
 import { extractJSON } from '../llm/ollama.js';
 import { config } from '../config.js';
 import { emit } from '../events/bus.js';
-import { SeedCandidate } from '../storage/seeds.js';
+import { appendResearchScoring } from '../storage/research.js';
+import { SeedCandidate, loadDynamicSeeds } from '../storage/seeds.js';
+import { SEEDS } from './seeds.js';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -34,6 +36,7 @@ export interface CloudDistillResult {
 interface RawItemResult {
   id: string;
   relevanceScore: number;
+  relevanceReason?: string;
   summary: string;
   insights: string[];
 }
@@ -46,6 +49,13 @@ interface RawDistillResponse {
 // ─── Prompt ───────────────────────────────────────────────────────────────────
 
 const SYSTEM = `You are an AI research analyst scoring papers and repositories for relevance to multi-agent AI systems. Respond ONLY with valid JSON. No markdown. No preamble.`;
+
+function existingSeedBlock(): string {
+  return [
+    ...SEEDS.map((s) => s.label),
+    ...loadDynamicSeeds().slice(0, 30).map((s) => `${s.label} / ${s.query}`),
+  ].join('\n- ');
+}
 
 function buildPrompt(items: ResearchItem[]): string {
   const itemsBlock = items
@@ -74,7 +84,10 @@ function buildPrompt(items: ResearchItem[]): string {
     `  4-5   Tangentially related (general ML, adjacent domains)\n` +
     `  1-3   Minimal relevance\n` +
     `  0     Unrelated\n\n` +
-    `Also extract 2-3 NEW search keywords surfaced by patterns across the batch.\n\n` +
+    `Existing search topics (do NOT repeat):\n- ${existingSeedBlock()}\n\n` +
+    `Also extract 3-5 NEW, specific search keywords surfaced by patterns across the batch.\n` +
+    `Prefer concrete method names, benchmarks, protocols, or failure modes over broad areas.\n` +
+    `GitHub queries must be text search queries with stars:>50, never URLs.\n\n` +
     `Return JSON only:\n` +
     `{\n` +
     `  "items": [\n` +
@@ -82,6 +95,7 @@ function buildPrompt(items: ResearchItem[]): string {
     `      "id": "<exact id from above>",\n` +
     `      "relevanceScore": <0-10>,\n` +
     `      "summary": "<2-3 sentences>",\n` +
+    `      "relevanceReason": "<why this score was assigned>",\n` +
     `      "insights": ["<key technique 1>", "<key technique 2>"]\n` +
     `    }\n` +
     `  ],\n` +
@@ -149,28 +163,65 @@ export async function cloudDistill(
       summary: r.summary ?? '',
       insights: Array.isArray(r.insights) ? r.insights : [],
       relevanceScore: score,
+      relevanceReason: r.relevanceReason ?? '',
+      scoringModel: config.cloud.model,
+      scoredAt: now,
       fetchedAt: base.fetchedAt ?? now,
     };
 
-    if (score >= threshold) {
+    const isKept = score >= threshold;
+    appendResearchScoring({
+      itemId: enriched.id,
+      cycleId,
+      source: enriched.source,
+      title: enriched.title,
+      url: enriched.url,
+      abstract: enriched.abstract,
+      publishedAt: enriched.publishedAt,
+      model: config.cloud.model,
+      pipeline: 'cloud',
+      relevanceScore: score,
+      threshold,
+      kept: isKept,
+      relevanceReason: enriched.relevanceReason ?? '',
+      summary: enriched.summary ?? '',
+      insights: enriched.insights ?? [],
+      scoredAt: now,
+    });
+
+    if (isKept) {
       kept.push(enriched);
       emit({ type: 'distill-item', level: 'success', cycleId,
+        researchItemId: enriched.id,
+        score,
+        threshold,
+        relevanceReason: enriched.relevanceReason,
         message: `✓ ${base.title.slice(0, 60)} (${score}/10)` });
     } else {
       emit({ type: 'distill-item', level: 'info', cycleId,
+        researchItemId: enriched.id,
+        score,
+        threshold,
+        relevanceReason: enriched.relevanceReason,
         message: `✗ ${base.title.slice(0, 60)} (${score}/10 — below threshold)` });
     }
   }
 
   // Validate keywords
   const keywords: SeedCandidate[] = (parsed.keywords ?? [])
+    .map((k) => {
+      const query = String(k.query || '').toLowerCase().replace(/[_+]+/g, ' ').replace(/\s+/g, ' ').trim();
+      const githubQuery = String(k.githubQuery || `${query} stars:>50`).trim();
+      return {
+        label: String(k.label || '').replace(/[_+]+/g, ' ').slice(0, 80),
+        query,
+        githubQuery: githubQuery.includes('stars:') ? githubQuery : `${githubQuery} stars:>50`,
+      };
+    })
     .filter((k) => k.label && k.query && k.query.trim().split(/\s+/).length >= 2)
-    .slice(0, 4)
-    .map((k) => ({
-      label: String(k.label).slice(0, 80),
-      query: String(k.query).toLowerCase().trim(),
-      githubQuery: String(k.githubQuery || k.query).trim(),
-    }));
+    .filter((k) => !/^https?:\/\//i.test(k.githubQuery))
+    .filter((k) => !/^(llm|ai|agent|agents|multi-agent|rag)$/i.test(k.query))
+    .slice(0, 6);
 
   emit({
     type: 'distill-end', level: 'success', cycleId,

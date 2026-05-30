@@ -32,6 +32,10 @@ export interface ProgressEvent {
   level: EventLevel;
   timestamp: string;
   cycleId?: number;
+  researchItemId?: string;
+  score?: number;
+  threshold?: number;
+  relevanceReason?: string;
 }
 
 // ─── Bus ──────────────────────────────────────────────────────────────────────

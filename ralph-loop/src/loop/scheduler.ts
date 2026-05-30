@@ -44,7 +44,7 @@ function isCheckpointDue(state: LoopState): boolean {
 
 async function crawlStep(cycleId: number): Promise<ResearchItem[]> {
   const dynamicSeeds = getTopDynamicSeeds(30);
-  const seeds = seedsForCycle(cycleId, 3, dynamicSeeds);
+  const seeds = seedsForCycle(cycleId, config.loop.seedsPerCycle, dynamicSeeds);
 
   emit({ type: 'info', level: 'info', cycleId,
     message: `Seeds: ${seeds.map((s) => s.label).join(' · ')}` });

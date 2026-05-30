@@ -14,8 +14,31 @@ export interface ResearchItem {
   // Filled in by distiller
   summary?: string;              // 3-5 sentence distilled summary
   insights?: string[];           // Key techniques/contributions (1-3)
-  relevanceScore?: number;       // 0–10, Ollama-graded
+  relevanceScore?: number;       // 0–10, Ollama/cloud-graded
+  relevanceReason?: string;      // why this item received its score
+  scoringModel?: string;         // model or heuristic that produced the score
+  scoredAt?: string;             // ISO timestamp when score was assigned
   fetchedAt: string;             // ISO timestamp when RALPH processed it
+}
+
+export interface ResearchScoringRecord {
+  id: string;
+  itemId: string;
+  cycleId?: number;
+  source: ResearchSource;
+  title: string;
+  url: string;
+  abstract: string;
+  publishedAt: string;
+  model: string;
+  pipeline: 'local' | 'cloud' | 'heuristic';
+  relevanceScore: number;
+  threshold: number;
+  kept: boolean;
+  relevanceReason: string;
+  summary: string;
+  insights: string[];
+  scoredAt: string;
 }
 
 // ─── Proposals ───────────────────────────────────────────────────────────────
@@ -78,6 +101,10 @@ export interface PreReviewBatch {
   riskNotes: string[];
   batchScore: number;            // 0-100 cloud reviewer score for the batch
   applyOrder?: string[];         // proposal IDs in recommended apply order
+  applyMode?: 'individual' | 'custom-merged' | 'manual';
+  mergedPatch?: string;          // optional reviewer-authored unified diff combining proposal intent
+  mergeRationale?: string;       // why the custom patch reduces integration risk
+  mergeWarnings?: string[];
 }
 
 export interface PreReviewConflictGroup {

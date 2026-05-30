@@ -17,6 +17,7 @@ import { releaseCheckpoint, pauseLoop } from '../loop/scheduler.js';
 import { bus } from '../events/bus.js';
 import { loadPreReview } from '../storage/pre-review.js';
 import { runPreReview } from '../proposals/pre-reviewer.js';
+import { getResearchScoringForItem, loadAllResearchItems, loadResearchScoringHistory } from '../storage/research.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -108,7 +109,11 @@ export function startServer(): void {
       .map((id) => proposals.find((p) => p.id === id))
       .filter((p): p is NonNullable<typeof p> => !!p);
 
-    const result = await applyBatchSmart(selected, report.cycleId);
+    const result = await applyBatchSmart(selected, report.cycleId, {
+      applyMode: batch.applyMode,
+      mergedPatch: batch.mergedPatch,
+      mergeRationale: batch.mergeRationale,
+    });
 
     // Persist proposal statuses according to smart applier results.
     proposals = loadProposals();
@@ -153,6 +158,21 @@ export function startServer(): void {
   app.post('/api/pause-loop', (_req: Request, res: Response) => {
     pauseLoop();
     res.json({ ok: true, message: 'Loop paused' });
+  });
+
+  // ─── Research scoring ───────────────────────────────────────────────────────
+
+  app.get('/api/research/scoring-history', (req: Request, res: Response) => {
+    const limit = Math.min(1000, Math.max(1, Number(req.query.limit) || 300));
+    res.json(loadResearchScoringHistory(limit));
+  });
+
+  app.get('/api/research/items/:id/scoring', (req: Request, res: Response) => {
+    const itemId = decodeURIComponent(req.params.id);
+    const history = getResearchScoringForItem(itemId);
+    const item = loadAllResearchItems().reverse().find((r) => r.id === itemId);
+    if (!item && history.length === 0) { res.status(404).json({ error: 'Research item not found' }); return; }
+    res.json({ item, history });
   });
 
   // ─── Seeds ──────────────────────────────────────────────────────────────────

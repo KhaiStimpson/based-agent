@@ -41,6 +41,23 @@ export interface SeedCandidate {
   githubQuery: string;
 }
 
+function normalizeCandidate(c: SeedCandidate): SeedCandidate | null {
+  const query = String(c.query || '')
+    .toLowerCase()
+    .replace(/[_+]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+  if (query.split(/\s+/).length < 2) return null;
+  if (/^(llm|ai|agent|agents|multi-agent|rag)$/i.test(query)) return null;
+
+  const label = String(c.label || query).replace(/[_+]+/g, ' ').trim().slice(0, 80);
+  let githubQuery = String(c.githubQuery || `${query} stars:>50`).replace(/[_+]+/g, ' ').trim();
+  if (/^https?:\/\//i.test(githubQuery)) githubQuery = `${query} stars:>50`;
+  if (!githubQuery.includes('stars:')) githubQuery = `${githubQuery} stars:>50`;
+
+  return { label, query, githubQuery };
+}
+
 /**
  * Insert a new dynamic seed or increment frequency if one with the same
  * query already exists.  Prunes the list to MAX_SEEDS after each write.
@@ -54,7 +71,9 @@ export function upsertDynamicSeeds(
   const now = new Date().toISOString();
   const changed: DynamicSeed[] = [];
 
-  for (const c of candidates) {
+  for (const raw of candidates) {
+    const c = normalizeCandidate(raw);
+    if (!c) continue;
     const id = seedId(c.query);
     const existing = seeds.find((s) => s.id === id);
 

@@ -2,6 +2,7 @@ import { ResearchItem } from '../types.js';
 import { fast, extractJSON } from '../llm/ollama.js';
 import { config } from '../config.js';
 import { emit } from '../events/bus.js';
+import { appendResearchScoring } from '../storage/research.js';
 
 // ─── System prompt ─────────────────────────────────────────────────────────────
 // Keep this SHORT. Small models (phi4-mini) ignore long system prompts.
@@ -82,6 +83,9 @@ export async function distillItem(item: ResearchItem): Promise<ResearchItem> {
         summary: result?.summary || item.abstract.slice(0, 200),
         insights: result?.insights || [],
         relevanceScore: score,
+        relevanceReason: result?.relevanceReason || 'Model response was partial; fallback heuristic score used.',
+        scoringModel: `${config.ollama.fastModel}+heuristic`,
+        scoredAt: new Date().toISOString(),
       };
     }
 
@@ -90,6 +94,9 @@ export async function distillItem(item: ResearchItem): Promise<ResearchItem> {
       summary: result.summary ?? '',
       insights: Array.isArray(result.insights) ? result.insights : [],
       relevanceScore: Math.min(10, Math.max(0, Number(result.relevanceScore) || 0)),
+      relevanceReason: result.relevanceReason ?? '',
+      scoringModel: config.ollama.fastModel,
+      scoredAt: new Date().toISOString(),
     };
   } catch (e) {
     const score = heuristicScore(item);
@@ -97,6 +104,9 @@ export async function distillItem(item: ResearchItem): Promise<ResearchItem> {
     return {
       ...item,
       relevanceScore: score,
+      relevanceReason: 'Ollama scoring failed; heuristic keyword score used.',
+      scoringModel: 'heuristic',
+      scoredAt: new Date().toISOString(),
       summary: item.abstract.slice(0, 200),
       insights: [],
     };
@@ -115,15 +125,42 @@ export async function distillBatch(items: ResearchItem[]): Promise<ResearchItem[
 
   for (const item of items) {
     emit({ type: 'distill-item', level: 'info',
+      researchItemId: item.id,
       message: `Scoring: ${item.title.slice(0, 70)}` });
     const result = await distillItem(item);
-    if ((result.relevanceScore ?? 0) >= config.loop.minRelevance) {
+    const kept = (result.relevanceScore ?? 0) >= config.loop.minRelevance;
+    appendResearchScoring({
+      itemId: result.id,
+      source: result.source,
+      title: result.title,
+      url: result.url,
+      abstract: result.abstract,
+      publishedAt: result.publishedAt,
+      model: result.scoringModel ?? config.ollama.fastModel,
+      pipeline: result.scoringModel === 'heuristic' ? 'heuristic' : 'local',
+      relevanceScore: result.relevanceScore ?? 0,
+      threshold: config.loop.minRelevance,
+      kept,
+      relevanceReason: result.relevanceReason ?? '',
+      summary: result.summary ?? '',
+      insights: result.insights ?? [],
+      scoredAt: result.scoredAt ?? new Date().toISOString(),
+    });
+    if (kept) {
       distilled.push(result);
       emit({ type: 'distill-item', level: 'success',
+        researchItemId: result.id,
+        score: result.relevanceScore,
+        threshold: config.loop.minRelevance,
+        relevanceReason: result.relevanceReason,
         message: `✓ ${result.title.slice(0, 60)} (${result.relevanceScore}/10)` });
     } else {
       console.log(`[distiller] dropped "${result.title}" (score: ${result.relevanceScore})`);
       emit({ type: 'distill-item', level: 'info',
+        researchItemId: result.id,
+        score: result.relevanceScore,
+        threshold: config.loop.minRelevance,
+        relevanceReason: result.relevanceReason,
         message: `✗ ${result.title.slice(0, 60)} (${result.relevanceScore}/10 — below threshold)` });
     }
   }

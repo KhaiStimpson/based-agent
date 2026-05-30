@@ -16,6 +16,27 @@ import * as fs from "node:fs";
 import * as path from "node:path";
 import * as crypto from "node:crypto";
 
+// ─── Locate the package .pi directory ──────────────────────────────────────
+// Walk up from process.cwd() to find the nearest AGENTS.md (package root).
+// Falls back to cwd if not found. This is robust across pi launch directories
+// and jiti ESM/CJS compilation modes.
+function findPackagePiDir(): string {
+  let dir = process.cwd();
+  for (let i = 0; i < 6; i++) {
+    if (fs.existsSync(path.join(dir, 'AGENTS.md'))) return path.join(dir, '.pi');
+    const parent = path.dirname(dir);
+    if (parent === dir) break;
+    dir = parent;
+  }
+  // Also check based-agent as a subdirectory (common when pi is run from parent)
+  const sub = path.join(process.cwd(), 'based-agent');
+  if (fs.existsSync(path.join(sub, 'AGENTS.md'))) return path.join(sub, '.pi');
+  return path.join(process.cwd(), '.pi');
+}
+const PACKAGE_PI_DIR = findPackagePiDir();
+
+
+
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 type ValidationStatus = "passed" | "failed" | "skipped" | "blocked";
@@ -61,7 +82,7 @@ function appendValidationLog(record: ValidationRecord): void {
 
 export default function (pi: ExtensionAPI) {
   pi.on("session_start", async (_event, ctx) => {
-    basePiDir = path.join(ctx.cwd, ".pi");
+    basePiDir = PACKAGE_PI_DIR;
     sessionValidations = [];
   });
 

@@ -16,6 +16,27 @@ import * as fs from "node:fs";
 import * as path from "node:path";
 import * as crypto from "node:crypto";
 
+// ─── Locate the package .pi directory ──────────────────────────────────────
+// Walk up from process.cwd() to find the nearest AGENTS.md (package root).
+// Falls back to cwd if not found. This is robust across pi launch directories
+// and jiti ESM/CJS compilation modes.
+function findPackagePiDir(): string {
+  let dir = process.cwd();
+  for (let i = 0; i < 6; i++) {
+    if (fs.existsSync(path.join(dir, 'AGENTS.md'))) return path.join(dir, '.pi');
+    const parent = path.dirname(dir);
+    if (parent === dir) break;
+    dir = parent;
+  }
+  // Also check based-agent as a subdirectory (common when pi is run from parent)
+  const sub = path.join(process.cwd(), 'based-agent');
+  if (fs.existsSync(path.join(sub, 'AGENTS.md'))) return path.join(sub, '.pi');
+  return path.join(process.cwd(), '.pi');
+}
+const PACKAGE_PI_DIR = findPackagePiDir();
+
+
+
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 type Verdict = "candidate" | "reject" | "needs_refinement";
@@ -34,12 +55,30 @@ interface AttemptSummary {
   reusable_insights: string[];
   verdict: Verdict;
   saved_at: string;
+  auto_generated?: boolean;
+  evidence_ref?: string;
+}
+
+interface EvidenceArtifact {
+  attempt_id: string;
+  trace_ref: string | null;
+  files_changed: string[];
+  commands: Array<{ command: string; exit_code?: number | null }>;
+  validations: string[];
+  safety_warnings: string[];
+  captured_at: string;
 }
 
 // ─── State ────────────────────────────────────────────────────────────────────
 
 const WRITE_TOOLS = new Set(["write", "edit", "create"]);
+const SHELL_TOOLS = new Set(["bash", "shell", "terminal"]);
 let sessionWriteToolsSeen: string[] = [];
+let sessionCommandsSeen: Array<{ command: string; exit_code?: number | null }> = [];
+let sessionValidationsSeen: string[] = [];
+let sessionSafetyWarnings: string[] = [];
+let manualSummarySaved = false;
+let sessionTraceRef: string | null = null;
 let basePiDir: string | null = null;
 
 function generateId(): string {
@@ -50,6 +89,31 @@ function summaryDir(piDir: string): string {
   const d = path.join(piDir, "runs", new Date().toISOString().slice(0, 10));
   fs.mkdirSync(d, { recursive: true });
   return d;
+}
+
+function redactSecretText(value: string): string {
+  return value.replace(/([A-Z0-9_]*(?:SECRET|TOKEN|PASSWORD|API_KEY|PRIVATE_KEY)[A-Z0-9_]*\s*[=:]\s*)[^\s"']+/gi, "$1[REDACTED]");
+}
+
+function commandLooksLikeValidation(command: string): boolean {
+  return /\b(test|check|lint|tsc|validate|doctor|status)\b|npm run (test|check|lint|validate|doctor|status)/i.test(command);
+}
+
+function traceRefFor(piDir: string): string | null {
+  if (sessionTraceRef) return sessionTraceRef;
+  const traceRoot = path.join(piDir, "mas-traces");
+  if (!fs.existsSync(traceRoot)) return null;
+  const files: string[] = [];
+  function walk(dir: string): void {
+    for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+      const fp = path.join(dir, entry.name);
+      if (entry.isDirectory()) walk(fp);
+      else if (entry.name.endsWith(".jsonl")) files.push(fp);
+    }
+  }
+  walk(traceRoot);
+  files.sort((a, b) => fs.statSync(b).mtimeMs - fs.statSync(a).mtimeMs);
+  return files[0] ? path.relative(piDir, files[0]).replace(/\\/g, "/") : null;
 }
 
 function readRecentSummaries(piDir: string, limit: number): AttemptSummary[] {
@@ -92,8 +156,14 @@ function readRecentSummaries(piDir: string, limit: number): AttemptSummary[] {
 
 export default function (pi: ExtensionAPI) {
   pi.on("session_start", async (_event, ctx) => {
-    basePiDir = path.join(ctx.cwd, ".pi");
+    basePiDir = PACKAGE_PI_DIR;
     sessionWriteToolsSeen = [];
+    sessionCommandsSeen = [];
+    sessionValidationsSeen = [];
+    sessionSafetyWarnings = [];
+    manualSummarySaved = false;
+    const sessionFile = ctx.sessionManager.getSessionFile?.();
+    sessionTraceRef = sessionFile ? `mas-traces/${new Date().toISOString().slice(0, 10)}/${path.basename(sessionFile, path.extname(sessionFile))}.jsonl` : null;
   });
 
   // Track which write tools were called this session
@@ -103,30 +173,77 @@ export default function (pi: ExtensionAPI) {
         (event.input as { path?: string; file_path?: string }).path ??
         (event.input as { path?: string; file_path?: string }).file_path ??
         "unknown";
-      sessionWriteToolsSeen.push(`${event.toolName}:${fileArg}`);
+      sessionWriteToolsSeen.push(`${event.toolName}:${String(fileArg)}`);
     }
+    if (SHELL_TOOLS.has(event.toolName)) {
+      const command = (event.input as { command?: string; cmd?: string }).command ?? (event.input as { command?: string; cmd?: string }).cmd;
+      if (command) {
+        const safe = redactSecretText(String(command)).slice(0, 300);
+        sessionCommandsSeen.push({ command: safe, exit_code: null });
+        if (commandLooksLikeValidation(safe)) sessionValidationsSeen.push(safe);
+      }
+    }
+    return undefined;
+  });
+
+  pi.on("tool_result", async (event) => {
+    const text = event.content.map((c) => c.type === "text" ? c.text : `[${c.type}]`).join(" ").slice(0, 500);
+    if (/safety|blocked|warning/i.test(text)) sessionSafetyWarnings.push(redactSecretText(text).slice(0, 250));
+    const last = [...sessionCommandsSeen].reverse().find((c) => c.exit_code === null);
+    if (last && SHELL_TOOLS.has(event.toolName)) last.exit_code = event.isError ? 1 : 0;
     return undefined;
   });
 
   // Reset per-agent-run tracking
   pi.on("agent_start", async () => {
     sessionWriteToolsSeen = [];
+    sessionCommandsSeen = [];
+    sessionValidationsSeen = [];
+    sessionSafetyWarnings = [];
+    manualSummarySaved = false;
   });
 
-  // On agent end: if code changes detected, prompt to save a summary
+  // On agent end: if code changes detected and no manual summary exists, save conservative artifacts.
   pi.on("agent_end", async (_event, ctx) => {
-    if (sessionWriteToolsSeen.length === 0) return;
-
-    if (!ctx.hasUI) return; // Skip in non-interactive mode
+    if (sessionWriteToolsSeen.length === 0 || manualSummarySaved || !basePiDir) return;
 
     try {
       const changedFiles = [...new Set(sessionWriteToolsSeen.map((s) => s.split(":").slice(1).join(":")))];
-      const message =
-        `This run modified ${changedFiles.length} file(s):\n  ${changedFiles.slice(0, 5).join("\n  ")}\n\n` +
-        `Save an attempt summary? (Use save_attempt_summary tool or /attempt-history to review)`;
-      ctx.ui.notify(message, "info");
+      const attemptId = `auto-${Date.now()}-${generateId()}`;
+      const evidence: EvidenceArtifact = {
+        attempt_id: attemptId,
+        trace_ref: traceRefFor(basePiDir),
+        files_changed: changedFiles,
+        commands: sessionCommandsSeen.map((c) => ({ command: redactSecretText(c.command), exit_code: c.exit_code ?? null })),
+        validations: [...new Set(sessionValidationsSeen.map(redactSecretText))],
+        safety_warnings: [...new Set(sessionSafetyWarnings.map(redactSecretText))],
+        captured_at: new Date().toISOString(),
+      };
+      const dir = summaryDir(basePiDir);
+      const evidenceFile = `${attemptId}-evidence.json`;
+      fs.writeFileSync(path.join(dir, evidenceFile), JSON.stringify(evidence, null, 2), "utf-8");
+      const validationSucceeded = evidence.validations.length > 0 && evidence.commands.some((c) => c.exit_code === 0 && commandLooksLikeValidation(c.command));
+      const summary: AttemptSummary = {
+        attempt_id: attemptId,
+        hypothesis: "Auto-generated summary for a write-bearing agent run.",
+        files_inspected: [],
+        files_changed: changedFiles,
+        commands_run: evidence.commands.map((c) => c.command),
+        tests_passed: validationSucceeded ? evidence.validations : [],
+        tests_failed: evidence.commands.filter((c) => c.exit_code && c.exit_code !== 0).map((c) => c.command),
+        progress_made: [`Modified ${changedFiles.length} file(s).`],
+        failure_modes: validationSucceeded ? [] : ["No passing validation evidence was captured automatically."],
+        remaining_risks: ["Auto summary is minimal; review changed files and evidence before promotion."],
+        reusable_insights: [],
+        verdict: "needs_refinement",
+        saved_at: new Date().toISOString(),
+        auto_generated: true,
+        evidence_ref: evidenceFile,
+      };
+      fs.writeFileSync(path.join(dir, `${attemptId}-summary.json`), JSON.stringify(summary, null, 2), "utf-8");
+      if (ctx.hasUI) ctx.ui.notify(`Auto attempt summary saved: ${attemptId} (${changedFiles.length} changed file(s))`, "info");
     } catch {
-      // ignore
+      // Non-fatal: never crash the session while saving evidence.
     }
   });
 
@@ -182,6 +299,7 @@ export default function (pi: ExtensionAPI) {
         return { content: [{ type: "text", text: "Runs directory not initialized" }], isError: true };
       }
       const attemptId = params.attempt_id ?? `${Date.now()}-${generateId()}`;
+      manualSummarySaved = true;
       const summary: AttemptSummary = {
         attempt_id: attemptId,
         hypothesis: params.hypothesis,

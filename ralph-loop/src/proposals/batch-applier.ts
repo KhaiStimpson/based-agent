@@ -10,9 +10,15 @@ import { emit } from '../events/bus.js';
 
 export interface BatchApplyResult {
   ok: boolean;
-  mode: 'deterministic' | 'cloud-merge' | 'failed';
+  mode: 'deterministic' | 'pre-review-merge' | 'cloud-merge' | 'failed';
   results: Array<{ id: string; status: string; error?: string }>;
   error?: string;
+  mergedPatch?: string;
+  mergeRationale?: string;
+}
+
+export interface BatchApplyOptions {
+  applyMode?: 'individual' | 'custom-merged' | 'manual';
   mergedPatch?: string;
   mergeRationale?: string;
 }
@@ -66,16 +72,49 @@ async function cloudMergePatch(proposals: Proposal[], failedError: string, cycle
 
 /**
  * Smart batch apply:
- * 1. Test all patches sequentially in a temp copy.
- * 2. If all clean, apply patches sequentially to real based-agent.
- * 3. If a patch fails, ask cloud model for one merged patch, dry-run it, then apply.
+ * 1. If pre-review supplied a custom merged patch, dry-run/apply that exact patch.
+ * 2. Otherwise test all patches sequentially in a temp copy.
+ * 3. If all clean, apply patches sequentially to real based-agent.
+ * 4. If a patch fails, ask cloud model for one merged patch, dry-run it, then apply.
  */
-export async function applyBatchSmart(proposals: Proposal[], cycleId?: number): Promise<BatchApplyResult> {
+export async function applyBatchSmart(proposals: Proposal[], cycleId?: number, options: BatchApplyOptions = {}): Promise<BatchApplyResult> {
   const ordered = proposals.filter((p) => p.status === 'pending');
   const patchProposals = ordered.filter((p) => p.patch);
   const manualOnly = ordered.filter((p) => !p.patch);
 
   if (ordered.length === 0) return { ok: true, mode: 'deterministic', results: [] };
+
+  if (options.applyMode === 'manual') {
+    return {
+      ok: true,
+      mode: 'deterministic',
+      results: ordered.map((p) => ({ id: p.id, status: 'approved' })),
+    };
+  }
+
+  if (options.applyMode === 'custom-merged' || options.mergedPatch) {
+    if (!options.mergedPatch) {
+      return { ok: false, mode: 'failed', results: [], error: 'Pre-review requested a custom merged apply but did not provide mergedPatch.' };
+    }
+    const dry = dryRunPatchText(options.mergedPatch);
+    if (!dry.success) {
+      return { ok: false, mode: 'failed', results: [], error: `Pre-review merged patch dry-run failed: ${dry.error}`, mergedPatch: options.mergedPatch, mergeRationale: options.mergeRationale };
+    }
+    const applied = applyPatchText(options.mergedPatch);
+    if (!applied.success) {
+      return { ok: false, mode: 'failed', results: [], error: `Pre-review merged patch apply failed: ${applied.error}`, mergedPatch: options.mergedPatch, mergeRationale: options.mergeRationale };
+    }
+    return {
+      ok: true,
+      mode: 'pre-review-merge',
+      mergedPatch: options.mergedPatch,
+      mergeRationale: options.mergeRationale,
+      results: [
+        ...patchProposals.map((p) => ({ id: p.id, status: 'applied' })),
+        ...manualOnly.map((p) => ({ id: p.id, status: 'approved' })),
+      ],
+    };
+  }
 
   let tempRoot = '';
   let firstFailure: { proposal: Proposal; error: string } | null = null;

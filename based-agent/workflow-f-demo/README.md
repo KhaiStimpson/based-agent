@@ -27,6 +27,18 @@ npm --prefix workflow-f-demo run demo
 npm --prefix workflow-f-demo run validate
 ```
 
+From inside `workflow-f-demo/`:
+
+```powershell
+npm run reset
+npm run demo
+npm run validate
+```
+
+Do not add `--prefix workflow-f-demo` when your current directory is already
+`workflow-f-demo/`; npm would then search for a nested
+`workflow-f-demo/workflow-f-demo/package.json`.
+
 The `demo` command resets its own output before producing a fresh run, so this
 short form is also sufficient:
 

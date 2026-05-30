@@ -11,13 +11,40 @@ import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import * as fs from "node:fs";
 import * as path from "node:path";
 
+// ─── Locate the package .pi directory ──────────────────────────────────────
+// Walk up from process.cwd() to find the nearest AGENTS.md (package root).
+// Falls back to cwd if not found. This is robust across pi launch directories
+// and jiti ESM/CJS compilation modes.
+function findPackagePiDir(): string {
+  let dir = process.cwd();
+  for (let i = 0; i < 6; i++) {
+    if (fs.existsSync(path.join(dir, 'AGENTS.md'))) return path.join(dir, '.pi');
+    const parent = path.dirname(dir);
+    if (parent === dir) break;
+    dir = parent;
+  }
+  // Also check based-agent as a subdirectory (common when pi is run from parent)
+  const sub = path.join(process.cwd(), 'based-agent');
+  if (fs.existsSync(path.join(sub, 'AGENTS.md'))) return path.join(sub, '.pi');
+  return path.join(process.cwd(), '.pi');
+}
+const PACKAGE_PI_DIR = findPackagePiDir();
+
+
 // Module-level state
+
 let traceFilePath: string | null = null;
 let sessionId: string | null = null;
 let basePiDir: string | null = null;
 let sessionToolCallCount = 0;
 let sessionHadErrors = false;
 const toolCallStartTimes = new Map<string, number>();
+const toolNamesById = new Map<string, string>();
+let sessionCommands: string[] = [];
+let sessionWritePaths: string[] = [];
+let sessionToolErrors: string[] = [];
+let sessionValidations: string[] = [];
+let sessionOutputSummaries: string[] = [];
 
 function generateId(): string {
   return Math.random().toString(36).slice(2, 10) + Date.now().toString(36);
@@ -26,6 +53,12 @@ function generateId(): string {
 function getDateString(): string {
   return new Date().toISOString().slice(0, 10);
 }
+
+function redact(value: string): string {
+  return value.replace(/([A-Z0-9_]*(?:SECRET|TOKEN|PASSWORD|API_KEY|PRIVATE_KEY)[A-Z0-9_]*\s*[=:]\s*)[^\s"']+/gi, "$1[REDACTED]");
+}
+function compact(value: unknown, max = 200): string { return redact(JSON.stringify(value)).slice(0, max); }
+function looksLikeValidation(command: string): boolean { return /\b(test|check|lint|tsc|validate|doctor|status)\b|npm run (test|check|lint|validate|doctor|status)/i.test(command); }
 
 function appendTrace(event: Record<string, unknown>): void {
   if (!traceFilePath) return;
@@ -40,10 +73,16 @@ function appendTrace(event: Record<string, unknown>): void {
 export default function (pi: ExtensionAPI) {
   // ─── Session start: open trace file ────────────────────────────────────────
   pi.on("session_start", async (event, ctx) => {
-    basePiDir = path.join(ctx.cwd, ".pi");
+    basePiDir = PACKAGE_PI_DIR;
     sessionToolCallCount = 0;
     sessionHadErrors = false;
     toolCallStartTimes.clear();
+    toolNamesById.clear();
+    sessionCommands = [];
+    sessionWritePaths = [];
+    sessionToolErrors = [];
+    sessionValidations = [];
+    sessionOutputSummaries = [];
 
     const date = getDateString();
     const sessionFile = ctx.sessionManager.getSessionFile();
@@ -75,9 +114,20 @@ export default function (pi: ExtensionAPI) {
   // ─── Tool call: record start time, emit event ────────────────────────────────
   pi.on("tool_call", async (event) => {
     toolCallStartTimes.set(event.toolCallId, Date.now());
+    toolNamesById.set(event.toolCallId, event.toolName);
     sessionToolCallCount++;
 
-    const inputSummary = JSON.stringify(event.input).slice(0, 200);
+    const inputSummary = compact(event.input, 200);
+    const command = (event.input as { command?: string; cmd?: string }).command ?? (event.input as { command?: string; cmd?: string }).cmd;
+    if (command && ["bash", "shell", "terminal"].includes(event.toolName)) {
+      const safe = redact(String(command)).slice(0, 300);
+      sessionCommands.push(safe);
+      if (looksLikeValidation(safe)) sessionValidations.push(safe);
+    }
+    if (["write", "edit", "create"].includes(event.toolName)) {
+      const fileArg = (event.input as { path?: string; file_path?: string }).path ?? (event.input as { path?: string; file_path?: string }).file_path;
+      if (fileArg) sessionWritePaths.push(String(fileArg));
+    }
     appendTrace({
       type: "tool_call",
       tool_name: event.toolName,
@@ -93,6 +143,7 @@ export default function (pi: ExtensionAPI) {
     const startTime = toolCallStartTimes.get(event.toolCallId);
     const durationMs = startTime !== undefined ? Date.now() - startTime : null;
     toolCallStartTimes.delete(event.toolCallId);
+    toolNamesById.delete(event.toolCallId);
 
     if (event.isError) sessionHadErrors = true;
 
@@ -104,7 +155,9 @@ export default function (pi: ExtensionAPI) {
         resultParts.push(`[${c.type}]`);
       }
     }
-    const resultSummary = resultParts.join(" ").slice(0, 200);
+    const resultSummary = redact(resultParts.join(" ")).slice(0, 200);
+    sessionOutputSummaries.push(`${event.toolName}: ${resultSummary}`.slice(0, 240));
+    if (event.isError) sessionToolErrors.push(`${event.toolName}: ${resultSummary}`.slice(0, 240));
 
     appendTrace({
       type: "tool_result",
@@ -125,6 +178,11 @@ export default function (pi: ExtensionAPI) {
       session_id: sessionId,
       total_tool_calls: sessionToolCallCount,
       had_errors: sessionHadErrors,
+      commands: [...new Set(sessionCommands)].slice(0, 50),
+      write_paths: [...new Set(sessionWritePaths)].slice(0, 100),
+      tool_errors: sessionToolErrors.slice(0, 25),
+      validations: [...new Set(sessionValidations)].slice(0, 25),
+      output_summaries: sessionOutputSummaries.slice(-25),
     });
   });
 

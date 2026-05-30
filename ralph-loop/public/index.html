@@ -3,1431 +3,1446 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>RALPH — Proposal Review</title>
+<title>RALPH / Evidence Review Console</title>
 <style>
+  @import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,650&family=IBM+Plex+Mono:wght@400;500;600&family=Instrument+Sans:wght@400;500;600;700&display=swap');
+
   :root {
-    --bg: #0d1117;
-    --surface: #161b22;
-    --surface2: #21262d;
-    --border: #30363d;
-    --text: #e6edf3;
-    --muted: #8b949e;
-    --accent: #58a6ff;
-    --accent-dim: #1f3a5f;
-    --green: #3fb950;
-    --green-dim: #1a3a1f;
-    --red: #f85149;
-    --red-dim: #3a1a1a;
-    --orange: #d29922;
-    --orange-dim: #3a2a0a;
-    --purple: #bc8cff;
-    --purple-dim: #2a1a4a;
-    --font: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', Helvetica, Arial, sans-serif;
-    --mono: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
-    --radius: 8px;
+    --bg: #080d0e;
+    --surface: #101718;
+    --surface-2: #142022;
+    --surface-3: #1a282b;
+    --border: #263538;
+    --border-bright: #35494d;
+    --text: #ebf0e9;
+    --muted: #87968e;
+    --green: #c0fa57;
+    --green-dim: rgba(192, 250, 87, .09);
+    --cyan: #60d9cc;
+    --cyan-dim: rgba(96, 217, 204, .1);
+    --orange: #ffc35d;
+    --orange-dim: rgba(255, 195, 93, .1);
+    --red: #ff7768;
+    --red-dim: rgba(255, 119, 104, .11);
+    --purple: #c5a5ff;
+    --radius: 10px;
+    --sans: 'Instrument Sans', 'Segoe UI', sans-serif;
+    --display: 'Fraunces', Georgia, serif;
+    --mono: 'IBM Plex Mono', Consolas, monospace;
   }
 
   * { box-sizing: border-box; margin: 0; padding: 0; }
 
   body {
-    background: var(--bg);
-    color: var(--text);
-    font-family: var(--font);
-    font-size: 14px;
-    line-height: 1.6;
     min-height: 100vh;
+    overflow: hidden;
+    background:
+      radial-gradient(circle at 4% -10%, rgba(192,250,87,.09), transparent 30%),
+      radial-gradient(circle at 96% 0%, rgba(96,217,204,.07), transparent 26%),
+      var(--bg);
+    color: var(--text);
+    font: 14px/1.5 var(--sans);
   }
 
-  /* ── Top bar ── */
-  header {
-    position: sticky;
-    top: 0;
-    z-index: 100;
-    background: var(--surface);
-    border-bottom: 1px solid var(--border);
+  button { font: inherit; color: inherit; }
+  button:focus-visible, a:focus-visible {
+    outline: 2px solid var(--green);
+    outline-offset: 2px;
+  }
+
+  .masthead {
+    height: 66px;
     padding: 0 24px;
-    height: 56px;
     display: flex;
     align-items: center;
-    gap: 20px;
+    gap: 18px;
+    border-bottom: 1px solid var(--border);
+    background: rgba(11, 16, 17, .9);
   }
 
-  .logo {
-    font-size: 18px;
-    font-weight: 700;
-    letter-spacing: .04em;
-    color: var(--accent);
-    flex-shrink: 0;
+  .wordmark {
+    font: 600 21px/1 var(--mono);
+    letter-spacing: .2em;
   }
-  .logo span { color: var(--muted); font-weight: 400; font-size: 12px; margin-left: 8px; }
+  .wordmark strong { color: var(--green); }
+
+  .pipeline-pill {
+    border-left: 1px solid var(--border);
+    padding-left: 18px;
+    color: var(--muted);
+    font: 11px var(--mono);
+    text-transform: uppercase;
+    letter-spacing: .1em;
+  }
+
+  .header-status {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-left: auto;
+    color: var(--muted);
+    font: 11px var(--mono);
+    text-transform: uppercase;
+  }
+
+  .signal {
+    width: 8px;
+    height: 8px;
+    border-radius: 99px;
+    background: var(--muted);
+  }
+  .signal.running, .signal.connected {
+    background: var(--cyan);
+    box-shadow: 0 0 12px rgba(96,217,204,.8);
+  }
+  .signal.checkpoint, .signal.reconnecting {
+    background: var(--orange);
+    box-shadow: 0 0 12px rgba(255,195,93,.72);
+  }
 
   .header-stats {
     display: flex;
-    gap: 16px;
-    margin-left: auto;
     align-items: center;
-    flex-wrap: wrap;
+    gap: 16px;
   }
-  .stat { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--muted); }
-  .stat strong { color: var(--text); }
+  .stat {
+    border-left: 1px solid var(--border);
+    padding-left: 14px;
+    color: var(--muted);
+    font: 10px var(--mono);
+    letter-spacing: .11em;
+    text-transform: uppercase;
+  }
+  .stat strong {
+    display: block;
+    margin-top: 2px;
+    color: var(--text);
+    font-size: 15px;
+    letter-spacing: 0;
+  }
+  .stat strong.attention { color: var(--green); }
+
+  .monitor-button {
+    display: none;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 9px 12px;
+    background: var(--surface);
+    color: var(--cyan);
+    font: 11px var(--mono);
+    letter-spacing: .06em;
+    text-transform: uppercase;
+    cursor: pointer;
+  }
+  .monitor-button:hover { border-color: var(--cyan); background: var(--cyan-dim); }
 
   .checkpoint-banner {
     display: none;
-    background: var(--orange-dim);
-    border: 1px solid var(--orange);
-    border-radius: var(--radius);
-    padding: 10px 16px;
-    font-size: 13px;
-    color: var(--orange);
+    margin: 12px 18px 0;
+    min-height: 53px;
     align-items: center;
-    gap: 12px;
+    gap: 17px;
+    padding: 10px 17px;
+    border: 1px solid rgba(255,195,93,.38);
+    border-radius: var(--radius);
+    background: var(--orange-dim);
+    color: #e7d1a4;
   }
   .checkpoint-banner.visible { display: flex; }
+  .checkpoint-banner .alert-label {
+    color: var(--orange);
+    font: 600 10px var(--mono);
+    letter-spacing: .16em;
+  }
   .checkpoint-banner button {
     margin-left: auto;
+    border: 0;
+    border-radius: 5px;
+    padding: 10px 15px;
     background: var(--orange);
-    color: #000;
-    border: none;
-    border-radius: 4px;
-    padding: 6px 14px;
-    font-weight: 600;
+    color: #201503;
     cursor: pointer;
-    font-size: 12px;
-    flex-shrink: 0;
-  }
-
-  /* ── Layout ── */
-  .layout { display: flex; height: calc(100vh - 56px); overflow: hidden; }
-
-  /* ── Activity panel ── */
-  .activity-panel {
-    width: 300px;
-    flex-shrink: 0;
-    border-left: 1px solid var(--border);
-    display: flex;
-    flex-direction: column;
-    background: var(--surface);
-    transition: width .2s ease, opacity .2s ease;
-  }
-  .activity-panel.collapsed { width: 0; opacity: 0; overflow: hidden; border: none; }
-
-  .activity-header {
-    padding: 10px 14px;
-    border-bottom: 1px solid var(--border);
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    flex-shrink: 0;
-  }
-  .activity-title { font-size: 12px; font-weight: 600; color: var(--text); flex: 1; letter-spacing:.03em; }
-
-  .activity-current {
-    padding: 10px 14px;
-    border-bottom: 1px solid var(--border);
-    font-size: 12px;
-    min-height: 52px;
-    flex-shrink: 0;
-  }
-  .activity-current .step-label {
-    font-size: 10px;
+    font: 600 10px var(--mono);
+    letter-spacing: .1em;
     text-transform: uppercase;
-    letter-spacing: .07em;
-    color: var(--muted);
-    margin-bottom: 4px;
-  }
-  .activity-current .step-text {
-    color: var(--text);
-    line-height: 1.4;
-    display: flex;
-    align-items: center;
-    gap: 6px;
   }
 
-  .activity-log {
-    flex: 1;
-    overflow-y: auto;
-    padding: 6px 0;
-    font-size: 11.5px;
-    font-family: var(--mono);
+  .workbench {
+    height: calc(100vh - 66px);
+    padding: 12px 18px 18px;
+    display: grid;
+    grid-template-columns: 238px minmax(520px, 1fr) 310px;
+    gap: 10px;
   }
-  .activity-log::-webkit-scrollbar { width: 4px; }
-  .activity-log::-webkit-scrollbar-track { background: transparent; }
-  .activity-log::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+  body.has-checkpoint .workbench { height: calc(100vh - 131px); }
 
-  .log-entry {
-    display: flex;
-    gap: 7px;
-    padding: 3px 14px;
-    line-height: 1.45;
-    transition: background .1s;
-  }
-  .log-entry:hover { background: var(--surface2); }
-  .log-entry .log-time { color: var(--muted); flex-shrink: 0; font-size: 10px; padding-top: 1px; }
-  .log-entry .log-icon { flex-shrink: 0; width: 14px; text-align: center; }
-  .log-entry .log-msg  { color: var(--text); word-break: break-word; }
-
-  .log-entry.level-success .log-msg { color: var(--green); }
-  .log-entry.level-warn    .log-msg { color: var(--orange); }
-  .log-entry.level-error   .log-msg { color: var(--red); }
-  .log-entry.level-info    .log-msg { color: #cdd9e5; }
-
-  /* Toggle button in header */
-  .activity-toggle {
-    background: none;
-    border: 1px solid var(--border);
-    border-radius: 4px;
-    color: var(--muted);
-    font-size: 11px;
-    padding: 3px 8px;
-    cursor: pointer;
-    white-space: nowrap;
-  }
-  .activity-toggle:hover { color: var(--text); border-color: var(--accent); }
-
-  /* SSE status dot */
-  .sse-dot {
-    width: 7px; height: 7px;
-    border-radius: 50%;
-    background: var(--muted);
-    flex-shrink: 0;
-    transition: background .3s;
-  }
-  .sse-dot.connected    { background: var(--green); }
-  .sse-dot.reconnecting { background: var(--orange); animation: pulse-orange 1.5s infinite; }
-
-  /* ── Sidebar ── */
-  aside {
-    width: 280px;
-    flex-shrink: 0;
-    border-right: 1px solid var(--border);
-    overflow-y: auto;
-    padding: 16px 0;
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-  }
-
-  .sidebar-section { padding: 4px 16px 8px; font-size: 11px; text-transform: uppercase;
-    letter-spacing: .08em; color: var(--muted); font-weight: 600; }
-
-  .filter-btn {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 7px 16px;
-    cursor: pointer;
-    border: none;
-    background: none;
-    color: var(--muted);
-    font-size: 13px;
-    text-align: left;
-    width: 100%;
-    transition: background .1s;
-  }
-  .filter-btn:hover { background: var(--surface2); color: var(--text); }
-  .filter-btn.active { background: var(--accent-dim); color: var(--accent); }
-  .filter-btn .badge {
-    margin-left: auto;
-    background: var(--surface2);
-    border-radius: 12px;
-    padding: 1px 8px;
-    font-size: 11px;
-    color: var(--muted);
-  }
-  .filter-btn.active .badge { background: var(--accent-dim); color: var(--accent); }
-
-  .cycle-info {
-    margin-top: auto;
-    padding: 12px 16px;
-    border-top: 1px solid var(--border);
-    font-size: 11px;
-    color: var(--muted);
-    line-height: 1.8;
-  }
-  .cycle-info .label { color: var(--text); font-weight: 500; }
-
-  /* ── Main panel ── */
-  main {
-    flex: 1;
-    overflow-y: auto;
-    padding: 20px;
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-  }
-
-  .empty-state {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    flex: 1;
-    color: var(--muted);
-    gap: 8px;
-    font-size: 15px;
-    padding: 60px;
-    text-align: center;
-  }
-  .empty-state .icon { font-size: 48px; opacity: .4; }
-
-  /* ── Proposal card ── */
-  .card {
-    background: var(--surface);
+  .proposal-queue, .proposal-dossier, .operations-rail {
+    min-height: 0;
     border: 1px solid var(--border);
     border-radius: var(--radius);
+    background: var(--surface);
     overflow: hidden;
-    transition: border-color .15s;
-    flex: 0 0 auto; /* critical: don't vertically shrink when many cards exist */
-    min-height: 86px;
   }
-  .card:hover { border-color: #4a5568; }
-  .card.selected { border-color: var(--accent); }
 
-  .card-header {
+  .proposal-queue {
     display: flex;
-    align-items: flex-start;
-    gap: 12px;
-    padding: 14px 16px;
-    cursor: pointer;
-    user-select: none;
-    min-height: 84px;
+    flex-direction: column;
   }
 
-  .score-ring {
-    flex-shrink: 0;
-    width: 44px;
-    height: 44px;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-weight: 700;
-    font-size: 14px;
-    border: 2px solid;
+  .section-label {
+    padding: 17px 15px 10px;
+    color: var(--muted);
+    font: 500 10px var(--mono);
+    text-transform: uppercase;
+    letter-spacing: .18em;
   }
-  .score-ring.high { border-color: var(--green); color: var(--green); background: var(--green-dim); }
-  .score-ring.mid  { border-color: var(--orange); color: var(--orange); background: var(--orange-dim); }
-  .score-ring.low  { border-color: var(--red); color: var(--red); background: var(--red-dim); }
 
-  .card-meta { flex: 1; min-width: 0; }
-  .card-title {
-    font-size: 14px;
-    font-weight: 600;
-    color: var(--text);
-    line-height: 1.4;
-    margin-bottom: 4px;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-  .card-summary { font-size: 12px; color: var(--muted); line-height: 1.5; }
-
-  .card-chips { display: flex; gap: 6px; margin-top: 6px; flex-wrap: wrap; }
-  .chip {
-    font-size: 11px;
-    padding: 2px 8px;
-    border-radius: 12px;
-    font-weight: 500;
-  }
-  .chip.file  { background: var(--surface2); color: var(--muted); font-family: var(--mono); }
-  .chip.status-pending   { background: var(--accent-dim); color: var(--accent); }
-  .chip.status-approved  { background: var(--green-dim);  color: var(--green); }
-  .chip.status-applied   { background: var(--green-dim);  color: var(--green); }
-  .chip.status-rejected  { background: var(--red-dim);    color: var(--red); }
-  .chip.cloud { background: #1a2a3a; color: #58c4f0; border: 1px solid #2a4a6a; }
-
-  .card-actions {
+  .nav-group { padding-bottom: 8px; border-bottom: 1px solid var(--border); }
+  .filter-btn {
+    width: 100%;
+    border: 0;
+    border-left: 2px solid transparent;
+    padding: 9px 14px 9px 12px;
     display: flex;
     gap: 8px;
-    flex-shrink: 0;
-    align-items: flex-start;
-  }
-  .btn {
-    border: none;
-    border-radius: 6px;
-    padding: 7px 14px;
-    font-size: 13px;
-    font-weight: 500;
+    align-items: center;
+    background: transparent;
+    color: var(--muted);
+    text-align: left;
     cursor: pointer;
-    transition: opacity .15s;
+    font-size: 13px;
+  }
+  .filter-btn:hover { color: var(--text); background: var(--surface-2); }
+  .filter-btn.active {
+    border-left-color: var(--green);
+    color: var(--green);
+    background: var(--green-dim);
+  }
+  .badge {
+    margin-left: auto;
+    border-radius: 99px;
+    padding: 2px 7px;
+    background: var(--surface-3);
+    color: var(--muted);
+    font: 10px var(--mono);
+  }
+
+  .queue-list {
+    min-height: 0;
+    flex: 1;
+    overflow: auto;
+    border-top: 1px solid var(--border);
+  }
+  .queue-item {
+    display: block;
+    width: 100%;
+    border: 0;
+    border-left: 2px solid transparent;
+    border-bottom: 1px solid rgba(38,53,56,.66);
+    padding: 12px 11px;
+    background: transparent;
+    color: var(--text);
+    text-align: left;
+    cursor: pointer;
+  }
+  .queue-item:hover { background: var(--surface-2); }
+  .queue-item.selected {
+    border-left-color: var(--green);
+    background: #172224;
+  }
+  .queue-score {
+    color: var(--green);
+    font: 600 14px var(--mono);
+    margin-right: 8px;
+  }
+  .queue-title {
+    display: inline;
+    font-size: 12px;
+    line-height: 1.35;
+  }
+  .queue-file {
+    margin: 7px 0 0 33px;
+    overflow: hidden;
+    color: var(--muted);
+    font: 10px var(--mono);
+    text-overflow: ellipsis;
     white-space: nowrap;
   }
-  .btn:disabled { opacity: .4; cursor: not-allowed; }
-  .btn-approve { background: var(--green); color: #000; }
-  .btn-approve:hover:not(:disabled) { opacity: .85; }
-  .btn-reject  { background: var(--surface2); color: var(--muted); border: 1px solid var(--border); }
-  .btn-reject:hover:not(:disabled) { color: var(--red); border-color: var(--red); }
-  .btn-expand  { background: var(--surface2); color: var(--muted); border: 1px solid var(--border); padding: 7px 10px; }
-  .btn-expand:hover { color: var(--text); }
 
-  /* ── Expanded detail ── */
-  .card-detail {
-    border-top: 1px solid var(--border);
-    padding: 16px;
-    display: none;
+  .proposal-dossier {
+    display: flex;
     flex-direction: column;
-    gap: 16px;
-    max-height: 65vh;
     overflow-y: auto;
-    overflow-x: hidden;
-    scroll-behavior: smooth;
   }
-  .card-detail.open { display: flex; }
-  /* Custom scrollbar to match dark theme */
-  .card-detail::-webkit-scrollbar { width: 6px; }
-  .card-detail::-webkit-scrollbar-track { background: transparent; }
-  .card-detail::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
-  .card-detail::-webkit-scrollbar-thumb:hover { background: #4a5568; }
-
-  .detail-section { display: flex; flex-direction: column; gap: 8px; }
-  .detail-label {
-    font-size: 11px;
-    text-transform: uppercase;
-    letter-spacing: .06em;
-    font-weight: 600;
+  .dossier-empty, .view-empty {
+    min-height: 100%;
+    display: grid;
+    place-items: center;
+    padding: 36px;
     color: var(--muted);
+    text-align: center;
   }
-  .detail-text { font-size: 13px; color: var(--text); line-height: 1.65; }
 
-  /* Score breakdown bar */
-  .score-bars { display: flex; flex-direction: column; gap: 6px; }
-  .score-bar-row { display: flex; align-items: center; gap: 10px; font-size: 12px; }
-  .score-bar-label { width: 100px; color: var(--muted); }
-  .score-bar-track {
-    flex: 1;
-    height: 6px;
-    background: var(--surface2);
-    border-radius: 3px;
-    overflow: hidden;
+  .dossier-head {
+    padding: 20px 22px 16px;
+    border-bottom: 1px solid var(--border);
   }
-  .score-bar-fill {
-    height: 100%;
-    border-radius: 3px;
-    background: var(--accent);
-    transition: width .3s ease;
+  .crumb {
+    margin-bottom: 12px;
+    color: var(--muted);
+    font: 10px var(--mono);
+    letter-spacing: .15em;
+    text-transform: uppercase;
   }
-  .score-bar-val { width: 28px; text-align: right; color: var(--text); font-weight: 600; }
-
-  /* Evidence list */
-  .evidence-list { display: flex; flex-direction: column; gap: 6px; }
-  .evidence-item {
-    background: var(--surface2);
-    border-radius: 6px;
-    padding: 10px 12px;
-    font-size: 12px;
+  .title-row { display: flex; gap: 16px; align-items: flex-start; }
+  .score-ring {
+    flex: 0 0 58px;
+    width: 58px;
+    height: 58px;
+    display: grid;
+    place-items: center;
+    border: 2px solid var(--green);
+    border-radius: 50%;
+    color: var(--green);
+    background: var(--green-dim);
+    font: 600 18px var(--mono);
   }
-  .evidence-item a { color: var(--accent); text-decoration: none; font-weight: 500; }
-  .evidence-item a:hover { text-decoration: underline; }
-  .evidence-relevance { color: var(--muted); margin-top: 3px; }
-
-  /* Diff viewer */
-  .diff-block {
-    background: #0d1117;
+  .score-ring.mid { border-color: var(--orange); color: var(--orange); background: var(--orange-dim); }
+  .score-ring.low { border-color: var(--red); color: var(--red); background: var(--red-dim); }
+  .dossier-title {
+    margin: 0 0 7px;
+    font: 500 clamp(24px, 2.3vw, 31px)/1.06 var(--display);
+    letter-spacing: -.04em;
+  }
+  .dossier-summary {
+    max-width: 760px;
+    color: #acb8b1;
+    font-size: 13px;
+    line-height: 1.55;
+  }
+  .chips { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 14px; }
+  .chip {
     border: 1px solid var(--border);
-    border-radius: 6px;
-    overflow: auto;
-    max-height: 260px;
-    font-family: var(--mono);
-    font-size: 12px;
-    line-height: 1.6;
+    border-radius: 99px;
+    padding: 4px 9px;
+    color: var(--muted);
+    background: var(--surface-2);
+    font: 10px var(--mono);
   }
-  .diff-line { padding: 1px 16px; white-space: pre; }
-  .diff-line.add  { background: rgba(63,185,80,.12); color: #aff5b4; }
-  .diff-line.del  { background: rgba(248,81,73,.12); color: #ffa198; }
-  .diff-line.meta { color: var(--purple); background: transparent; }
-  .diff-line.ctx  { color: var(--muted); }
+  .chip.pending { color: var(--green); border-color: rgba(192,250,87,.26); }
+  .chip.cloud { color: var(--cyan); border-color: rgba(96,217,204,.25); }
+  .chip.failed { color: var(--red); border-color: rgba(255,119,104,.26); }
 
-  /* Score history sparkline */
-  .score-history { display: flex; gap: 4px; align-items: flex-end; height: 32px; }
-  .score-bar-spark {
-    width: 8px;
-    background: var(--accent);
-    border-radius: 2px;
-    opacity: .7;
-    transition: opacity .1s;
+  .dossier-tabs {
+    min-height: 45px;
+    padding: 0 22px;
+    display: flex;
+    align-items: flex-end;
+    gap: 24px;
+    border-bottom: 1px solid var(--border);
+    color: var(--muted);
+    font: 10px var(--mono);
+    letter-spacing: .12em;
   }
-  .score-bar-spark:hover { opacity: 1; }
-
-  /* Apply error */
-  .apply-error {
-    background: var(--red-dim);
-    border: 1px solid var(--red);
-    border-radius: 6px;
-    padding: 10px 12px;
-    font-size: 12px;
-    color: var(--red);
-    font-family: var(--mono);
+  .dossier-tab {
+    border: 0;
+    border-bottom: 2px solid transparent;
+    padding: 0 0 12px;
+    background: transparent;
+    color: inherit;
+    cursor: pointer;
+    font: inherit;
+    letter-spacing: inherit;
+    text-transform: uppercase;
   }
+  .dossier-tab:hover { color: var(--text); }
+  .dossier-tab.active { color: var(--green); border-bottom-color: var(--green); }
 
-  /* Toast */
-  #toast {
-    position: fixed;
-    bottom: 24px;
-    left: 50%;
-    transform: translateX(-50%) translateY(80px);
-    background: var(--surface2);
+  .dossier-content {
+    padding: 16px 22px 20px;
+    display: grid;
+    grid-template-columns: minmax(240px, 1fr) minmax(250px, .92fr);
+    align-items: start;
+    gap: 13px;
+  }
+  .dossier-content.single { grid-template-columns: minmax(0, 1fr); }
+  .panel {
     border: 1px solid var(--border);
     border-radius: 8px;
-    padding: 10px 20px;
-    font-size: 13px;
-    color: var(--text);
-    box-shadow: 0 4px 20px rgba(0,0,0,.5);
-    transition: transform .25s ease;
-    pointer-events: none;
-    z-index: 9999;
-    white-space: nowrap;
+    padding: 13px;
+    background: var(--surface-2);
   }
-  #toast.show { transform: translateX(-50%) translateY(0); }
+  .panel + .panel { margin-top: 11px; }
+  .panel-label {
+    margin-bottom: 10px;
+    color: var(--muted);
+    font: 500 9px var(--mono);
+    letter-spacing: .18em;
+    text-transform: uppercase;
+  }
+  .body-text {
+    color: #c6d0ca;
+    font-size: 13px;
+    line-height: 1.62;
+    white-space: pre-wrap;
+  }
+  .evidence-item {
+    padding: 9px 0;
+    border-bottom: 1px solid var(--border);
+  }
+  .evidence-item:last-child { border-bottom: 0; padding-bottom: 0; }
+  .evidence-item a { color: var(--text); font-size: 12px; text-decoration: none; }
+  .evidence-item a:hover { color: var(--green); }
+  .evidence-relevance { margin-top: 4px; color: var(--cyan); font: 10px var(--mono); }
 
-  /* Spinner */
+  .risk-note {
+    border-color: rgba(255,195,93,.32);
+    background: rgba(255,195,93,.05);
+  }
+  .risk-note li {
+    color: #decda7;
+    margin: 5px 0 5px 15px;
+    font-size: 12px;
+  }
+
+  .diff-block {
+    max-height: 360px;
+    overflow: auto;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: #0b1113;
+    padding: 7px 0;
+    font: 11px/1.55 var(--mono);
+  }
+  .diff-line { min-width: max-content; padding: 1px 10px; white-space: pre; color: var(--muted); }
+  .diff-line.add { color: var(--green); background: rgba(192,250,87,.06); }
+  .diff-line.del { color: var(--red); background: rgba(255,119,104,.06); }
+  .diff-line.meta { color: var(--cyan); }
+
+  .score-bars { display: flex; flex-direction: column; gap: 8px; }
+  .score-row { display: grid; grid-template-columns: 86px 1fr 40px; gap: 8px; align-items: center; font-size: 11px; color: var(--muted); }
+  .track { height: 5px; border-radius: 99px; overflow: hidden; background: var(--surface-3); }
+  .fill { height: 100%; background: var(--green); border-radius: inherit; }
+  .score-row strong { color: var(--text); text-align: right; font: 10px var(--mono); }
+  .sparkline { height: 34px; display: flex; align-items: flex-end; gap: 5px; }
+  .sparkline i { display: block; width: 9px; border-radius: 3px 3px 0 0; background: var(--cyan); opacity: .72; }
+
+  .dossier-actions {
+    position: sticky;
+    bottom: 0;
+    margin-top: auto;
+    display: flex;
+    justify-content: flex-end;
+    gap: 9px;
+    padding: 13px 22px;
+    border-top: 1px solid var(--border);
+    background: rgba(16, 23, 24, .96);
+  }
+  .btn {
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 10px 15px;
+    background: var(--surface-2);
+    color: var(--muted);
+    cursor: pointer;
+    font: 500 11px var(--mono);
+    letter-spacing: .05em;
+    text-transform: uppercase;
+  }
+  .btn:hover:not(:disabled) { border-color: var(--border-bright); color: var(--text); }
+  .btn:disabled { opacity: .45; cursor: not-allowed; }
+  .btn-approve { border-color: var(--green); background: var(--green); color: #142005; font-weight: 600; }
+  .btn-approve:hover:not(:disabled) { color: #142005; background: #d0ff77; }
+  .btn-reject:hover:not(:disabled) { color: var(--red); border-color: var(--red); }
+
+  .view-page { padding: 20px 22px; display: flex; flex-direction: column; gap: 12px; }
+  .view-title { font: 500 30px/1.05 var(--display); letter-spacing: -.04em; }
+  .view-note { color: var(--muted); }
+  .card {
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 15px;
+    background: var(--surface-2);
+  }
+  .card-title { font-weight: 600; margin-bottom: 7px; }
+  .row { display: flex; justify-content: space-between; align-items: flex-start; gap: 13px; }
+  .review-proposal-list {
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+  }
+  .review-proposal {
+    width: 100%;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 10px 11px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: #10191a;
+    color: var(--text);
+    cursor: pointer;
+    text-align: left;
+  }
+  .review-proposal:hover {
+    border-color: rgba(192,250,87,.38);
+    background: var(--green-dim);
+  }
+  .review-proposal-title {
+    min-width: 0;
+    flex: 1;
+    font-size: 12px;
+    line-height: 1.45;
+  }
+  .review-proposal-score { color: var(--green); font: 600 12px var(--mono); }
+  .review-proposal-open { color: var(--cyan); font: 10px var(--mono); text-transform: uppercase; }
+
+  .operations-rail {
+    display: flex;
+    flex-direction: column;
+    background: #10191a;
+  }
+  .operations-head {
+    padding: 16px 14px 10px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .drawer-close {
+    display: none;
+    border: 1px solid var(--border);
+    border-radius: 5px;
+    background: transparent;
+    color: var(--muted);
+    padding: 4px 8px;
+    cursor: pointer;
+    font: 10px var(--mono);
+  }
+  .health-card {
+    margin: 0 12px 11px;
+    border: 1px solid rgba(96,217,204,.28);
+    border-radius: 8px;
+    padding: 12px;
+    background: var(--cyan-dim);
+  }
+  .health-line {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 12px;
+    font: 500 11px var(--mono);
+    color: var(--cyan);
+    text-transform: uppercase;
+  }
+  .sse-state { color: var(--muted); font-size: 10px; }
+  .current-step {
+    color: var(--text);
+    font-size: 12px;
+    line-height: 1.48;
+    min-height: 38px;
+  }
+  .pulse-track {
+    height: 3px;
+    margin-top: 12px;
+    border-radius: 99px;
+    background: var(--border);
+    overflow: hidden;
+  }
+  .pulse-track::after {
+    display: block;
+    content: '';
+    width: 72%;
+    height: 100%;
+    background: var(--cyan);
+    animation: breathe 2.4s ease-in-out infinite;
+  }
+  @keyframes breathe { 0%, 100% { opacity: .55; } 50% { opacity: 1; } }
+
+  .vitals {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 7px;
+    padding: 0 12px 12px;
+  }
+  .vital {
+    border: 1px solid var(--border);
+    border-radius: 7px;
+    padding: 9px;
+    color: var(--muted);
+    font: 9px var(--mono);
+    letter-spacing: .12em;
+    text-transform: uppercase;
+  }
+  .vital strong {
+    display: block;
+    color: var(--text);
+    margin-top: 7px;
+    font-size: 16px;
+    letter-spacing: 0;
+  }
+  .vital strong.warn { color: var(--orange); }
+  .activity-heading {
+    border-top: 1px solid var(--border);
+    padding: 13px 13px 9px;
+    display: flex;
+    justify-content: space-between;
+    color: var(--muted);
+    font: 10px var(--mono);
+    letter-spacing: .16em;
+    text-transform: uppercase;
+  }
+  .activity-log {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    padding: 0 12px;
+  }
+  .log-entry {
+    display: grid;
+    grid-template-columns: 51px 13px 1fr;
+    gap: 8px;
+    padding: 8px 0;
+    border-top: 1px solid rgba(38,53,56,.72);
+    font: 10px/1.45 var(--mono);
+  }
+  .log-time { color: var(--muted); }
+  .log-icon { color: var(--cyan); }
+  .log-msg { min-width: 0; overflow-wrap: anywhere; }
+  .log-entry.clickable { cursor: pointer; }
+  .log-entry.clickable:hover .log-msg { color: var(--cyan); text-decoration: underline; }
+  .score-history-item { cursor: pointer; }
+  .score-history-item:hover { border-color: rgba(110,231,255,.45); }
+  .score-pill { font: 700 18px var(--mono); color: var(--green); }
+  .score-pill.low { color: var(--orange); }
+  .log-entry.level-success .log-icon, .log-entry.level-success .log-msg { color: var(--green); }
+  .log-entry.level-warn .log-icon, .log-entry.level-warn .log-msg { color: var(--orange); }
+  .log-entry.level-error .log-icon, .log-entry.level-error .log-msg { color: var(--red); }
+  .rail-footer {
+    border-top: 1px solid var(--border);
+    padding: 11px 12px;
+    color: var(--muted);
+    font: 10px var(--mono);
+  }
+
   .spinner {
     display: inline-block;
-    width: 14px; height: 14px;
-    border: 2px solid var(--muted);
-    border-top-color: var(--accent);
+    width: 11px;
+    height: 11px;
+    margin-right: 7px;
+    border: 2px solid var(--border-bright);
+    border-top-color: var(--cyan);
     border-radius: 50%;
-    animation: spin .6s linear infinite;
-    vertical-align: middle;
+    animation: spin .65s linear infinite;
+    vertical-align: -1px;
   }
   @keyframes spin { to { transform: rotate(360deg); } }
 
-  /* Pulse on checkpoint */
-  @keyframes pulse-orange {
-    0%, 100% { box-shadow: 0 0 0 0 rgba(210,153,34,.4); }
-    50% { box-shadow: 0 0 0 8px rgba(210,153,34,0); }
-  }
-  .pulse { animation: pulse-orange 2s ease infinite; }
-
-  /* ──────────────────────────────────────────────────────────────────────────
-     Responsive layout
-     ────────────────────────────────────────────────────────────────────────── */
-
-  @media (max-width: 1180px) {
-    aside { width: 230px; }
-    .activity-panel { width: 260px; }
-    header { gap: 12px; padding: 0 14px; }
-    .header-stats { gap: 10px; }
+  .apply-error {
+    border: 1px solid rgba(255,119,104,.32);
+    background: var(--red-dim);
+    color: var(--red);
+    padding: 10px;
+    border-radius: 6px;
+    margin-top: 11px;
+    font: 11px var(--mono);
   }
 
-  @media (max-width: 980px) {
-    .activity-panel { width: 0; opacity: 0; overflow: hidden; border: none; }
-    .activity-panel:not(.collapsed) {
+  #toast {
+    position: fixed;
+    bottom: 21px;
+    left: 50%;
+    z-index: 500;
+    transform: translate(-50%, 90px);
+    padding: 11px 18px;
+    border: 1px solid var(--border);
+    border-radius: 7px;
+    background: var(--surface-3);
+    box-shadow: 0 14px 36px rgba(0,0,0,.45);
+    transition: transform .2s ease;
+  }
+  #toast.show { transform: translate(-50%, 0); }
+
+  @media (max-width: 1120px) {
+    .monitor-button { display: inline-flex; align-items: center; }
+    .workbench { grid-template-columns: 226px minmax(0, 1fr); }
+    .operations-rail {
       position: fixed;
+      z-index: 300;
+      top: 78px;
       right: 12px;
       bottom: 12px;
-      top: auto;
-      width: min(420px, calc(100vw - 24px));
-      height: min(70vh, 560px);
-      opacity: 1;
-      z-index: 250;
-      border: 1px solid var(--border);
-      border-radius: 14px;
-      box-shadow: 0 20px 70px rgba(0,0,0,.65);
-      overflow: hidden;
+      width: min(344px, calc(100vw - 24px));
+      transform: translateX(calc(100% + 20px));
+      opacity: 0;
+      transition: transform .22s ease, opacity .22s ease;
+      box-shadow: 0 20px 58px rgba(0,0,0,.62);
     }
+    .operations-rail.open { transform: translateX(0); opacity: 1; }
+    .drawer-close { display: inline-flex; }
+    .dossier-content { grid-template-columns: 1fr; }
   }
 
   @media (max-width: 760px) {
-    body { font-size: 13px; overflow: hidden; }
-
-    header {
+    body { overflow: hidden; }
+    .masthead {
       height: auto;
-      min-height: 54px;
-      padding: 8px 10px;
-      gap: 8px;
+      min-height: 60px;
+      padding: 10px 12px;
+      gap: 10px;
       flex-wrap: wrap;
     }
-    .logo { font-size: 16px; }
-    .logo span { display: none; }
-    #status-text { max-width: 92px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    #pipeline-pill { order: 3; }
-
+    .wordmark { font-size: 18px; }
+    .pipeline-pill { padding-left: 10px; font-size: 10px; }
+    .header-status { margin-left: auto; }
     .header-stats {
       order: 4;
       width: 100%;
-      margin-left: 0;
-      gap: 8px;
       overflow-x: auto;
-      flex-wrap: nowrap;
-      padding-bottom: 2px;
+      gap: 12px;
+    }
+    .monitor-button { margin-left: auto; }
+    .checkpoint-banner.visible {
+      margin: 8px 10px 0;
+      align-items: flex-start;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .checkpoint-banner button { width: 100%; margin-left: 0; }
+    .workbench, body.has-checkpoint .workbench {
+      height: calc(100vh - 118px);
+      padding: 8px 10px 10px;
+      display: flex;
+      flex-direction: column;
+    }
+    body.has-checkpoint .workbench { height: calc(100vh - 205px); }
+    .proposal-queue {
+      flex: 0 0 auto;
+      max-height: 157px;
+    }
+    .nav-group {
+      display: flex;
+      gap: 5px;
+      padding: 8px;
+      overflow-x: auto;
       scrollbar-width: none;
     }
-    .header-stats::-webkit-scrollbar { display: none; }
-    .stat { flex: 0 0 auto; font-size: 11px; }
-    #next-cycle-stat { display: none !important; }
-    .activity-toggle { margin-left: auto; min-height: 34px; padding: 6px 10px; }
-
-    .checkpoint-banner.visible {
-      position: fixed !important;
-      top: auto !important;
-      left: 8px;
-      right: 8px;
-      bottom: 10px;
-      z-index: 400;
-      margin: 0 !important;
-      border-radius: 12px !important;
-      flex-direction: column;
-      align-items: flex-start;
-      font-size: 12px;
-      box-shadow: 0 16px 50px rgba(0,0,0,.6);
-    }
-    .checkpoint-banner button { width: 100%; margin-left: 0; min-height: 42px; }
-
-    .layout {
-      flex-direction: column;
-      height: calc(100vh - 96px);
-      min-height: 0;
-      overflow: hidden;
-    }
-
-    /* Sidebar becomes a horizontal filter rail */
-    aside {
-      width: 100%;
-      height: auto;
-      max-height: 126px;
-      flex: 0 0 auto;
-      border-right: none;
-      border-bottom: 1px solid var(--border);
-      padding: 8px 8px 10px;
-      overflow-x: auto;
-      overflow-y: hidden;
-      display: grid;
-      grid-auto-flow: column;
-      grid-auto-columns: max-content;
-      align-items: start;
-      gap: 6px;
-      scrollbar-width: thin;
-    }
-    aside .sidebar-section,
-    aside .cycle-info { display: none; }
+    .nav-group::-webkit-scrollbar, .queue-list::-webkit-scrollbar, .dossier-tabs::-webkit-scrollbar { display: none; }
+    .nav-group .section-label { display: none; }
     .filter-btn {
       width: auto;
-      min-width: 104px;
-      min-height: 42px;
+      flex: 0 0 auto;
       border: 1px solid var(--border);
-      border-radius: 999px;
-      background: var(--surface);
-      padding: 8px 12px;
-      justify-content: center;
-      white-space: nowrap;
-      font-size: 12px;
+      border-radius: 99px;
+      padding: 8px 10px;
     }
-    .filter-btn .badge { margin-left: 6px; padding: 1px 7px; }
-
-    main {
-      flex: 1 1 auto;
-      min-height: 0;
+    .filter-btn.active { border-color: var(--green); }
+    .queue-list {
+      display: flex;
+      min-height: 69px;
+      overflow-x: auto;
+      overflow-y: hidden;
+      scrollbar-width: none;
+    }
+    .queue-item {
+      flex: 0 0 210px;
+      border-left: 0;
+      border-bottom: 0;
+      border-right: 1px solid var(--border);
       padding: 10px;
-      gap: 10px;
-      overflow-y: auto;
-      -webkit-overflow-scrolling: touch;
     }
-    .empty-state { padding: 36px 18px; }
-
-    .card { border-radius: 12px; min-height: 122px; }
-    .card-header {
-      display: grid;
-      grid-template-columns: 44px 1fr;
-      gap: 10px;
-      padding: 12px;
-      min-height: 120px;
-    }
-    .card-title {
-      white-space: normal;
-      display: -webkit-box;
-      -webkit-line-clamp: 2;
-      -webkit-box-orient: vertical;
-    }
-    .card-summary { font-size: 12px; }
-    .chip { font-size: 10.5px; padding: 2px 7px; }
-    .chip.file { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-
-    .card-actions {
-      grid-column: 1 / -1;
-      width: 100%;
-      display: grid;
-      grid-template-columns: 1fr 1fr 44px;
-      gap: 8px;
-      margin-top: 4px;
-    }
-    .btn {
-      min-height: 44px;
-      padding: 10px 12px;
-      font-size: 13px;
-      border-radius: 10px;
-    }
-    .btn-expand { padding: 10px; }
-
-    .card-detail {
-      max-height: calc(100vh - 220px);
-      padding: 12px;
-      gap: 14px;
-    }
-    .detail-text { font-size: 12.5px; line-height: 1.6; }
-    .score-bar-row {
-      display: grid;
-      grid-template-columns: 82px 1fr 32px;
-      gap: 8px;
-    }
-    .score-bar-label { width: auto; }
-
-    .diff-block {
-      max-height: 42vh;
-      font-size: 11px;
-      border-radius: 10px;
-    }
-    .diff-line { padding: 1px 10px; }
-
-    #toast {
-      left: 10px;
-      right: 10px;
-      bottom: 12px;
-      transform: translateY(80px);
-      white-space: normal;
-      text-align: center;
-    }
-    #toast.show { transform: translateY(0); }
-
-    /* Live activity becomes a draggable-feeling bottom sheet */
-    .activity-panel,
-    .activity-panel.collapsed {
-      position: fixed;
-      left: 0;
-      right: 0;
-      bottom: 0;
+    .proposal-dossier { flex: 1; }
+    .dossier-head { padding: 15px; }
+    .title-row { gap: 11px; }
+    .score-ring { width: 47px; height: 47px; flex-basis: 47px; font-size: 15px; }
+    .dossier-title { font-size: 22px; }
+    .dossier-tabs { padding: 0 15px; gap: 14px; overflow-x: auto; white-space: nowrap; }
+    .dossier-content { padding: 12px 15px; }
+    .dossier-actions { padding: 11px 15px; display: grid; grid-template-columns: 1fr 1fr; }
+    .operations-rail {
       top: auto;
+      bottom: 0;
+      right: 0;
       width: 100%;
-      height: min(74vh, 620px);
-      opacity: 1;
-      z-index: 300;
-      border-left: none;
-      border-top: 1px solid var(--border);
+      height: min(72vh, 590px);
       border-radius: 16px 16px 0 0;
-      box-shadow: 0 -18px 60px rgba(0,0,0,.7);
-      transform: translateY(100%);
-      transition: transform .22s ease;
-      overflow: hidden;
+      transform: translateY(105%);
     }
-    .activity-panel:not(.collapsed) { transform: translateY(0); }
-    .activity-header { min-height: 48px; }
-    .activity-header::before {
-      content: '';
-      position: absolute;
-      top: 8px;
-      left: 50%;
-      transform: translateX(-50%);
-      width: 38px;
-      height: 4px;
-      border-radius: 999px;
-      background: var(--border);
-    }
-    .activity-current { min-height: 58px; }
-    .activity-log { font-size: 11px; padding-bottom: 16px; }
+    .operations-rail.open { transform: translateY(0); }
   }
 
-  @media (max-width: 420px) {
-    header { padding: 7px 8px; }
-    .logo { font-size: 15px; }
-    #pipeline-pill { font-size: 10px; padding: 2px 7px; }
-    .filter-btn { min-width: 94px; padding: 7px 10px; }
-    .score-ring { width: 40px; height: 40px; font-size: 13px; }
-    .card-header { grid-template-columns: 40px 1fr; padding: 10px; }
-    .card-actions { grid-template-columns: 1fr 1fr 42px; }
-    .btn { min-height: 42px; font-size: 12px; }
-    .score-bar-row { grid-template-columns: 72px 1fr 30px; font-size: 11px; }
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation: none !important; transition: none !important; }
   }
 </style>
 </head>
 <body>
-
-<header>
-  <div class="logo">RALPH <span>Research Loop</span></div>
-  <div id="status-dot" style="width:8px;height:8px;border-radius:50%;background:var(--muted);flex-shrink:0"></div>
-  <span id="status-text" style="font-size:12px;color:var(--muted)">connecting…</span>
-  <span id="pipeline-pill" style="font-size:11px;padding:3px 10px;border-radius:12px;font-weight:600;background:var(--surface2);color:var(--muted);border:1px solid var(--border)">mode</span>
+<header class="masthead">
+  <div class="wordmark">R<strong>A</strong>LPH</div>
+  <div class="pipeline-pill" id="pipeline-pill">research loop / connecting</div>
+  <div class="header-status"><span class="signal" id="status-dot"></span><span id="status-text">connecting</span></div>
   <div class="header-stats">
-    <div class="stat">Cycle <strong id="h-cycle">—</strong></div>
-    <div class="stat">Pending <strong id="h-pending" style="color:var(--accent)">—</strong></div>
-    <div class="stat">Approved <strong id="h-approved" style="color:var(--green)">—</strong></div>
-    <div class="stat">Rejected <strong id="h-rejected" style="color:var(--muted)">—</strong></div>
-    <div class="stat" id="next-cycle-stat" style="display:none">Next cycle <strong id="h-next">—</strong></div>
+    <div class="stat">Cycle<strong id="h-cycle">--</strong></div>
+    <div class="stat">Pending<strong class="attention" id="h-pending">--</strong></div>
+    <div class="stat">Approved<strong id="h-approved">--</strong></div>
   </div>
-  <button class="activity-toggle" onclick="toggleActivity()" id="activity-toggle-btn">📶 Live</button>
+  <button class="monitor-button" id="activity-toggle-btn" aria-controls="operations-rail" aria-expanded="false" onclick="toggleActivity()">Live Status</button>
 </header>
 
-<!-- Checkpoint banner injected below header dynamically -->
-
-<div class="layout">
-  <aside>
-    <div class="sidebar-section">Filter</div>
-    <button class="filter-btn active" data-filter="pending" onclick="setFilter('pending')">
-      ⏳ Pending <span class="badge" id="badge-pending">0</span>
-    </button>
-    <button class="filter-btn" data-filter="approved" onclick="setFilter('approved')">
-      ✅ Approved <span class="badge" id="badge-approved">0</span>
-    </button>
-    <button class="filter-btn" data-filter="applied" onclick="setFilter('applied')">
-      🚀 Applied <span class="badge" id="badge-applied">0</span>
-    </button>
-    <button class="filter-btn" data-filter="rejected" onclick="setFilter('rejected')">
-      ❌ Rejected <span class="badge" id="badge-rejected">0</span>
-    </button>
-    <button class="filter-btn" data-filter="apply-failed" onclick="setFilter('apply-failed')">
-      ⚠️ Failed <span class="badge" id="badge-apply-failed">0</span>
-    </button>
-    <button class="filter-btn" data-filter="all" onclick="setFilter('all')">
-      📋 All proposals <span class="badge" id="badge-all">0</span>
-    </button>
-
-    <div class="sidebar-section" style="margin-top:12px">Review</div>
-    <button class="filter-btn" data-filter="pre-review" onclick="showPreReviewTab()">
-      🧑‍⚖️ Pre-review <span class="badge" id="badge-prereview">—</span>
-    </button>
-
-    <div class="sidebar-section" style="margin-top:12px">Seeds</div>
-    <button class="filter-btn" data-filter="seeds" onclick="showSeedsTab()">
-      🔍 Search seeds <span class="badge" id="badge-seeds">…</span>
-    </button>
-
-    <div class="cycle-info" id="cycle-info">
-      <div><span class="label">Status:</span> <span id="ci-status">—</span></div>
-      <div><span class="label">Last cycle:</span> <span id="ci-last">—</span></div>
-      <div><span class="label">Next cycle:</span> <span id="ci-next">—</span></div>
-      <div><span class="label">Total items:</span> <span id="ci-items">—</span></div>
-    </div>
-  </aside>
-
-  <main id="proposal-list">
-    <div class="empty-state">
-      <div class="icon">🔬</div>
-      <div>Loading proposals…</div>
-    </div>
-  </main>
-
-  <!-- Live Activity Panel -->
-  <div class="activity-panel collapsed" id="activity-panel">
-    <div class="activity-header">
-      <div class="sse-dot" id="sse-dot"></div>
-      <span class="activity-title">Live Activity</span>
-      <span id="sse-status" style="font-size:10px;color:var(--muted)">connecting…</span>
-    </div>
-    <div class="activity-current" id="activity-current">
-      <div class="step-label">Currently</div>
-      <div class="step-text" id="current-step"><span class="spinner"></span> Waiting for cycle…</div>
-    </div>
-    <div class="activity-log" id="activity-log"></div>
-  </div>
+<div class="checkpoint-banner" id="checkpoint-banner">
+  <span class="alert-label">Checkpoint Reached</span>
+  <span>Review evidence and patch risk before returning the loop to research.</span>
+  <button onclick="resumeLoop()" id="resume-btn">Continue Research</button>
 </div>
 
-<div id="checkpoint-banner" class="checkpoint-banner" style="position:sticky;top:56px;z-index:99;margin:0 20px;border-radius:0 0 8px 8px;">
-  ⏰ <strong>24-hour checkpoint reached.</strong> Review and approve/reject proposals below, then continue the research loop.
-  <button onclick="resumeLoop()" id="resume-btn">Continue Research →</button>
+<div class="workbench">
+  <nav class="proposal-queue" id="proposal-queue" aria-label="Proposal review queue">
+    <div class="nav-group">
+      <div class="section-label">Review queue</div>
+      <button class="filter-btn active" data-filter="pending" onclick="setFilter('pending')">Pending <span class="badge" id="badge-pending">0</span></button>
+      <button class="filter-btn" data-filter="approved" onclick="setFilter('approved')">Approved <span class="badge" id="badge-approved">0</span></button>
+      <button class="filter-btn" data-filter="applied" onclick="setFilter('applied')">Applied <span class="badge" id="badge-applied">0</span></button>
+      <button class="filter-btn" data-filter="rejected" onclick="setFilter('rejected')">Rejected <span class="badge" id="badge-rejected">0</span></button>
+      <button class="filter-btn" data-filter="apply-failed" onclick="setFilter('apply-failed')">Failed <span class="badge" id="badge-apply-failed">0</span></button>
+      <button class="filter-btn" data-filter="all" onclick="setFilter('all')">All <span class="badge" id="badge-all">0</span></button>
+      <button class="filter-btn" data-filter="pre-review" onclick="showPreReviewTab()">Pre-review <span class="badge" id="badge-prereview">--</span></button>
+      <button class="filter-btn" data-filter="scoring" onclick="showScoringTab()">Scoring <span class="badge" id="badge-scoring">--</span></button>
+      <button class="filter-btn" data-filter="seeds" onclick="showSeedsTab()">Seeds <span class="badge" id="badge-seeds">--</span></button>
+    </div>
+    <div class="section-label">Highest score first</div>
+    <div class="queue-list" id="queue-items"></div>
+  </nav>
+
+  <main class="proposal-dossier" id="proposal-dossier">
+    <div class="dossier-empty">Loading proposal evidence...</div>
+  </main>
+
+  <aside class="operations-rail" id="operations-rail" aria-label="Live loop status">
+    <div class="operations-head">
+      <div class="section-label" style="padding:0">Operations rail</div>
+      <button class="drawer-close" onclick="toggleActivity()">Close</button>
+    </div>
+    <section class="health-card">
+      <div class="health-line">
+        <span><span class="signal" id="sse-dot" style="display:inline-block;margin-right:7px"></span><span id="rail-loop-status">Waiting</span></span>
+        <span class="sse-state" id="sse-status">connecting</span>
+      </div>
+      <div class="panel-label">Currently</div>
+      <div class="current-step" id="current-step"><span class="spinner"></span>Waiting for cycle activity...</div>
+      <div class="pulse-track"></div>
+    </section>
+    <div class="vitals">
+      <div class="vital">Last cycle<strong id="rail-duration">--</strong></div>
+      <div class="vital">Research<strong id="rail-research">--</strong></div>
+      <div class="vital">Proposals<strong id="rail-proposals">--</strong></div>
+      <div class="vital">Attention<strong id="rail-attention">--</strong></div>
+    </div>
+    <div class="activity-heading"><span>Live activity</span><span id="log-count">0 events</span></div>
+    <div class="activity-log" id="activity-log"></div>
+    <div class="rail-footer">Stream retains the most recent 300 events for this session.</div>
+  </aside>
 </div>
 
 <div id="toast"></div>
 
 <script>
-// ─── State ────────────────────────────────────────────────────────────────────
-// ─── State ──────────────────────────────────────────────────────────────────
 let allProposals = [];
 let seedsData = { static: [], dynamic: [] };
 let preReview = null;
-let showingSeeds = false;
-let showingPreReview = false;
-let cloudModel = '';   // populated from /api/state, used in renderCard
+let scoringHistory = [];
+let selectedScoringItem = null;
+let loopState = null;
+let cloudModel = '';
 let currentFilter = 'pending';
-let expandedIds = new Set();
+let currentView = 'proposals';
+let selectedProposalId = null;
+let activeDossierTab = 'evidence';
+let activityVisible = false;
+let sseSource = null;
+let logEntries = [];
+let userScrolledUp = false;
+const LOG_CAP = 300;
 
-// ─── API helpers ──────────────────────────────────────────────────────────────
+const EVENT_MARKS = {
+  'cycle-start': '>',
+  'cycle-end': '+',
+  'crawl': '>',
+  'crawl-result': '+',
+  'distill-start': '>',
+  'distill-item': '.',
+  'distill-end': '+',
+  'keywords': '>',
+  'keyword-result': '+',
+  'generate-start': '>',
+  'proposal-new': '+',
+  'generate-end': '+',
+  'rerank-start': '>',
+  'rerank-end': '+',
+  'checkpoint': '!',
+  'resume': '>',
+  'info': 'i',
+  'warn': '!',
+  'error': 'x',
+};
+
+const ACTIVE_TYPES = new Set(['crawl', 'distill-start', 'distill-item', 'keywords', 'generate-start', 'rerank-start']);
+
 async function api(method, path, body) {
-  const res = await fetch(path, {
+  const response = await fetch(path, {
     method,
     headers: body ? { 'Content-Type': 'application/json' } : {},
     body: body ? JSON.stringify(body) : undefined,
   });
-  return res.json();
+  if (!response.ok) throw new Error(`${method} ${path} failed (${response.status})`);
+  return response.json();
 }
 
-// ─── Toast ────────────────────────────────────────────────────────────────────
 let toastTimer;
-function toast(msg, color = 'var(--text)') {
-  const el = document.getElementById('toast');
-  el.textContent = msg;
-  el.style.color = color;
-  el.classList.add('show');
+function toast(message, color = 'var(--text)') {
+  const element = document.getElementById('toast');
+  element.textContent = message;
+  element.style.color = color;
+  element.classList.add('show');
   clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => el.classList.remove('show'), 3000);
+  toastTimer = setTimeout(() => element.classList.remove('show'), 3500);
 }
 
-// ─── Data loading ─────────────────────────────────────────────────────────────
 async function loadData() {
-  const [proposals, state, seeds, review] = await Promise.all([
-    api('GET', '/api/proposals'),
-    api('GET', '/api/state'),
-    api('GET', '/api/seeds'),
-    api('GET', '/api/pre-review'),
-  ]);
-
-  allProposals = Array.isArray(proposals) ? proposals : [];
-  seedsData = seeds && seeds.static ? seeds : { static: [], dynamic: [] };
-  preReview = review && review.batches ? review : null;
-  if (state.cloudModel) cloudModel = state.cloudModel;
-  const dynCount = seedsData.dynamic.length;
-  const el = document.getElementById('badge-seeds');
-  if (el) el.textContent = `${dynCount} dynamic`;
-  const prBadge = document.getElementById('badge-prereview');
-  if (prBadge) prBadge.textContent = preReview ? `${preReview.batches.length} batches` : 'run';
-
-  // Update header stats
-  const counts = {};
-  for (const p of allProposals) counts[p.status] = (counts[p.status] || 0) + 1;
-  document.getElementById('h-cycle').textContent = state.currentCycleId || '0';
-  document.getElementById('h-pending').textContent = counts['pending'] || 0;
-  document.getElementById('h-approved').textContent = (counts['approved'] || 0) + (counts['applied'] || 0);
-  document.getElementById('h-rejected').textContent = counts['rejected'] || 0;
-
-  // Pipeline mode pill
-  const pill = document.getElementById('pipeline-pill');
-  if (pill && state.pipelineMode) {
-    const icons = { local: '⚙️ local', hybrid: '⚗️ hybrid', cloud: '✨ cloud' };
-    const colors = {
-      local:  { bg: 'var(--surface2)', color: 'var(--muted)',   border: 'var(--border)' },
-      hybrid: { bg: '#1a1a3a',         color: '#9090ff',        border: '#3a3a7a' },
-      cloud:  { bg: '#1a2a1a',         color: 'var(--green)',   border: '#2a4a2a' },
-    };
-    const c = colors[state.pipelineMode] || colors.local;
-    pill.textContent = icons[state.pipelineMode] || state.pipelineMode;
-    pill.style.background = c.bg;
-    pill.style.color = c.color;
-    pill.style.borderColor = c.border;
-    pill.title = `Pipeline: ${state.pipelineMode}${state.cloudModel ? ' — ' + state.cloudModel : ''}`;
+  try {
+    const [proposals, state, seeds, review, scoring] = await Promise.all([
+      api('GET', '/api/proposals'),
+      api('GET', '/api/state'),
+      api('GET', '/api/seeds'),
+      api('GET', '/api/pre-review'),
+      api('GET', '/api/research/scoring-history?limit=300'),
+    ]);
+    allProposals = Array.isArray(proposals) ? proposals : [];
+    loopState = state;
+    seedsData = seeds && seeds.static ? seeds : { static: [], dynamic: [] };
+    preReview = review && review.batches ? review : null;
+    scoringHistory = Array.isArray(scoring) ? scoring : [];
+    cloudModel = state.cloudModel || cloudModel;
+    renderGlobalState();
+    renderWorkspace();
+  } catch (error) {
+    toast(`Data refresh failed: ${error.message}`, 'var(--red)');
   }
-
-  // Badges
-  for (const [k, v] of Object.entries(counts)) {
-    const el = document.getElementById('badge-' + k);
-    if (el) el.textContent = v;
-  }
-  document.getElementById('badge-all').textContent = allProposals.length;
-
-  // Sidebar cycle info
-  document.getElementById('ci-status').textContent = state.status || '—';
-  document.getElementById('ci-last').textContent = state.lastCycleAt ? relTime(state.lastCycleAt) : '—';
-  document.getElementById('ci-next').textContent = state.nextCycleAt ? relTime(state.nextCycleAt) : '—';
-  document.getElementById('ci-items').textContent = state.totalResearchItems || 0;
-
-  // Status dot
-  const dot = document.getElementById('status-dot');
-  const stxt = document.getElementById('status-text');
-  const colors = { running: 'var(--green)', checkpoint: 'var(--orange)', paused: 'var(--muted)', idle: 'var(--muted)' };
-  dot.style.background = colors[state.status] || 'var(--muted)';
-  stxt.textContent = state.status || '—';
-
-  // Next cycle countdown
-  if (state.nextCycleAt && state.status === 'running') {
-    document.getElementById('next-cycle-stat').style.display = '';
-    document.getElementById('h-next').textContent = relTime(state.nextCycleAt);
-  } else {
-    document.getElementById('next-cycle-stat').style.display = 'none';
-  }
-
-  // Checkpoint banner
-  const banner = document.getElementById('checkpoint-banner');
-  if (state.status === 'checkpoint') {
-    banner.classList.add('visible', 'pulse');
-  } else {
-    banner.classList.remove('visible', 'pulse');
-  }
-
-  renderProposals();
 }
 
-// ─── Filter ───────────────────────────────────────────────────────────────────
+function renderGlobalState() {
+  const counts = allProposals.reduce((totals, proposal) => {
+    totals[proposal.status] = (totals[proposal.status] || 0) + 1;
+    return totals;
+  }, {});
+  const state = loopState || {};
+  setText('h-cycle', state.currentCycleId || '0');
+  setText('h-pending', counts.pending || 0);
+  setText('h-approved', (counts.approved || 0) + (counts.applied || 0));
+  for (const status of ['pending', 'approved', 'applied', 'rejected', 'apply-failed']) {
+    setText(`badge-${status}`, counts[status] || 0);
+  }
+  setText('badge-all', allProposals.length);
+  setText('badge-seeds', `${seedsData.dynamic.length} dyn`);
+  setText('badge-prereview', preReview ? `${preReview.batches.length}` : 'run');
+  setText('badge-scoring', scoringHistory.length || '--');
+  setText('pipeline-pill', `research loop / ${state.pipelineMode || 'local'}`);
+  setText('status-text', state.status || 'idle');
+  setText('rail-loop-status', state.status || 'idle');
+  setText('rail-research', state.totalResearchItems || 0);
+  setText('rail-proposals', state.totalProposals || allProposals.length || 0);
+  const needsAttention = state.status === 'checkpoint' || state.status === 'paused';
+  setText('rail-attention', needsAttention ? 'Paused' : (state.status || 'idle'));
+  document.getElementById('rail-attention').classList.toggle('warn', needsAttention);
+  const latestCycle = state.history && state.history[0];
+  setText('rail-duration', latestCycle && latestCycle.durationMs ? `${Math.round(latestCycle.durationMs / 1000)}s` : '--');
+  const statusDot = document.getElementById('status-dot');
+  statusDot.className = `signal ${state.status || ''}`;
+  const banner = document.getElementById('checkpoint-banner');
+  const checkpoint = state.status === 'checkpoint';
+  banner.classList.toggle('visible', checkpoint);
+  document.body.classList.toggle('has-checkpoint', checkpoint);
+}
+
+function filteredProposals() {
+  return currentFilter === 'all'
+    ? allProposals
+    : allProposals.filter((proposal) => proposal.status === currentFilter);
+}
+
+function selectProposal(id) {
+  if (selectedProposalId !== id) activeDossierTab = 'evidence';
+  selectedProposalId = id;
+  currentView = 'proposals';
+  setActiveNavigation(currentFilter);
+  renderWorkspace();
+}
+
+function ensureSelectedProposal(proposals) {
+  if (!proposals.some((proposal) => proposal.id === selectedProposalId)) {
+    selectedProposalId = proposals[0]?.id || null;
+  }
+  return proposals.find((proposal) => proposal.id === selectedProposalId) || null;
+}
+
+function renderWorkspace() {
+  const proposals = filteredProposals();
+  const selected = currentView === 'proposals' ? ensureSelectedProposal(proposals) : null;
+  renderQueue(proposals);
+  if (currentView === 'seeds') return renderSeeds();
+  if (currentView === 'pre-review') return renderPreReview();
+  if (currentView === 'scoring') return renderScoringHistory();
+  renderDossier(selected);
+}
+
+function renderQueue(proposals) {
+  const list = document.getElementById('queue-items');
+  list.innerHTML = proposals.length
+    ? proposals.map((proposal) => `
+      <button class="queue-item${proposal.id === selectedProposalId ? ' selected' : ''}" onclick="selectProposal('${proposal.id}')" aria-label="Review ${escHtml(proposal.title)}">
+        <span class="queue-score">${proposal.score}</span><span class="queue-title">${escHtml(proposal.title)}</span>
+        <div class="queue-file">${escHtml(proposal.targetFile || 'No target file')}</div>
+      </button>`).join('')
+    : `<div class="view-empty">No ${escHtml(currentFilter)} proposals.</div>`;
+}
+
 function setFilter(filter) {
   currentFilter = filter;
-  showingSeeds = false;
-  showingPreReview = false;
-  document.querySelectorAll('.filter-btn').forEach(b => b.classList.toggle('active', b.dataset.filter === filter));
-  renderProposals();
+  currentView = 'proposals';
+  selectedProposalId = null;
+  activeDossierTab = 'evidence';
+  setActiveNavigation(filter);
+  renderWorkspace();
 }
 
-// ─── Seeds tab ─────────────────────────────────────────────────────────────────
 function showSeedsTab() {
-  showingSeeds = true;
-  showingPreReview = false;
-  document.querySelectorAll('.filter-btn').forEach(b => b.classList.toggle('active', b.dataset.filter === 'seeds'));
-  renderSeeds();
+  currentView = 'seeds';
+  setActiveNavigation('seeds');
+  renderWorkspace();
 }
 
 function showPreReviewTab() {
-  showingPreReview = true;
-  showingSeeds = false;
-  document.querySelectorAll('.filter-btn').forEach(b => b.classList.toggle('active', b.dataset.filter === 'pre-review'));
-  renderPreReview();
+  currentView = 'pre-review';
+  setActiveNavigation('pre-review');
+  renderWorkspace();
+}
+
+function showScoringTab() {
+  currentView = 'scoring';
+  selectedScoringItem = null;
+  setActiveNavigation('scoring');
+  renderWorkspace();
+}
+
+function setActiveNavigation(key) {
+  document.querySelectorAll('.filter-btn').forEach((button) => {
+    button.classList.toggle('active', button.dataset.filter === key);
+  });
+}
+
+function showDossierTab(tab) {
+  activeDossierTab = tab;
+  renderWorkspace();
+}
+
+function renderDossier(proposal) {
+  const dossier = document.getElementById('proposal-dossier');
+  if (!proposal) {
+    dossier.innerHTML = `<div class="dossier-empty">No proposal is ready for review in this queue.</div>`;
+    return;
+  }
+
+  const breakdown = proposal.scoreBreakdown || { novelty: 0, impact: 0, feasibility: 0, evidenceQuality: 0 };
+  const canAct = proposal.status === 'pending';
+  const evidence = (proposal.evidence || []).map((item) => `
+    <div class="evidence-item">
+      <a href="${escHtml(item.url)}" target="_blank" rel="noopener">${escHtml(item.title)}</a>
+      <div class="evidence-relevance">${escHtml(item.relevance || 'supporting source')}</div>
+    </div>`).join('') || `<div class="body-text">No linked evidence provided.</div>`;
+  const risks = riskSignals(proposal).map((risk) => `<li>${escHtml(risk)}</li>`).join('');
+  const diff = proposal.patch ? renderDiff(proposal.patch) : `<div class="body-text">No patch attached. Approval records the recommendation for manual follow-up.</div>`;
+  const history = renderScoreHistory(proposal.scoreHistory || []);
+  const tabs = [
+    ['evidence', 'Evidence + Risk'],
+    ['patch', 'Patch'],
+    ['score', 'Score'],
+    ['rationale', 'Rationale'],
+  ].map(([tab, label]) => `<button class="dossier-tab${activeDossierTab === tab ? ' active' : ''}" role="tab" aria-selected="${activeDossierTab === tab}" onclick="showDossierTab('${tab}')">${label}</button>`).join('');
+  const tabContent = {
+    evidence: `
+      <section class="panel">
+        <div class="panel-label">Evidence trail / ${(proposal.evidence || []).length} sources</div>
+        ${evidence}
+      </section>
+      <section class="panel risk-note">
+        <div class="panel-label">Risk watch</div>
+        <ul>${risks}</ul>
+      </section>`,
+    patch: `
+      <section class="panel">
+        <div class="panel-label">Patch preview</div>
+        ${diff}
+      </section>
+      <section class="panel">
+        <div class="panel-label">Suggested change</div>
+        <div class="body-text">${escHtml(proposal.suggestedChange || 'No suggested change supplied.')}</div>
+      </section>
+      ${proposal.applyError ? `<div class="apply-error">Patch apply failed: ${escHtml(proposal.applyError)}</div>` : ''}`,
+    score: `
+      <section class="panel">
+        <div class="panel-label">Score breakdown</div>
+        <div class="score-bars">${renderBreakdown(breakdown)}</div>
+        ${history}
+      </section>`,
+    rationale: `
+      <section class="panel">
+        <div class="panel-label">Rationale</div>
+        <div class="body-text">${escHtml(proposal.rationale || 'No rationale supplied.')}</div>
+      </section>`,
+  }[activeDossierTab] || '';
+
+  dossier.innerHTML = `
+    <section id="card-${proposal.id}">
+      <div class="dossier-head">
+        <div class="crumb">Proposal dossier / ${escHtml(proposal.status)} / cycle ${escHtml(proposal.cycleId || '--')}</div>
+        <div class="title-row">
+          <div class="score-ring ${scoreClass(proposal.score)}">${proposal.score}</div>
+          <div>
+            <h1 class="dossier-title">${escHtml(proposal.title)}</h1>
+            <p class="dossier-summary">${escHtml(proposal.summary || '')}</p>
+            <div class="chips">
+              <span class="chip ${proposal.status === 'apply-failed' ? 'failed' : proposal.status}">${escHtml(proposal.status)}</span>
+              ${proposal.source === 'cloud' ? `<span class="chip cloud">cloud${cloudModel ? ` / ${escHtml(cloudModel.split('/').pop())}` : ''}</span>` : ''}
+              ${proposal.targetFile ? `<span class="chip">${escHtml(proposal.targetFile)}</span>` : ''}
+              ${proposal.patch ? `<span class="chip">patch attached</span>` : ''}
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="dossier-tabs" role="tablist" aria-label="Proposal review detail">${tabs}</div>
+      <div class="dossier-content single" role="tabpanel">
+        <div>${tabContent}</div>
+      </div>
+      <div class="dossier-actions">
+        ${canAct ? `<button class="btn btn-reject" onclick="rejectProposal('${proposal.id}')">Reject</button><button class="btn btn-approve" onclick="approveProposal('${proposal.id}')">Approve + Apply</button>` : `<span class="chip">${escHtml(proposal.status)}</span>`}
+      </div>
+    </section>`;
+}
+
+function riskSignals(proposal) {
+  const risks = [];
+  if (proposal.targetFile && proposal.targetFile.startsWith('.pi/extensions/')) {
+    risks.push('Extension changes runtime behavior; verify write scope and rollback path.');
+  }
+  if (proposal.patch) {
+    risks.push('Approval applies a patch to based-agent; inspect affected files before committing.');
+  }
+  if ((proposal.evidence || []).length > 3) {
+    risks.push(`Synthesis relies on ${(proposal.evidence || []).length} sources; confirm the evidence applies to this implementation.`);
+  }
+  if (proposal.applyError) risks.push(`Previous application failed: ${proposal.applyError}`);
+  return risks.length ? risks : ['No automatic risk signal detected; review rationale and target before approval.'];
+}
+
+function renderDiff(patch) {
+  const lines = patch.split('\n').map((line) => {
+    let className = '';
+    if (line.startsWith('+') && !line.startsWith('+++')) className = 'add';
+    else if (line.startsWith('-') && !line.startsWith('---')) className = 'del';
+    else if (line.startsWith('@@') || line.startsWith('+++') || line.startsWith('---')) className = 'meta';
+    return `<div class="diff-line ${className}">${escHtml(line)}</div>`;
+  }).join('');
+  return `<div class="diff-block">${lines}</div>`;
+}
+
+function renderBreakdown(breakdown) {
+  return [['Novelty', breakdown.novelty], ['Impact', breakdown.impact], ['Feasibility', breakdown.feasibility], ['Evidence', breakdown.evidenceQuality]].map(([label, value]) => `
+    <div class="score-row">
+      <span>${label}</span>
+      <div class="track"><div class="fill" style="width:${Math.max(0, Math.min(100, value / 25 * 100))}%"></div></div>
+      <strong>${value}/25</strong>
+    </div>`).join('');
+}
+
+function renderScoreHistory(history) {
+  const points = history.slice(-12);
+  if (points.length < 2) return '';
+  const max = Math.max(...points.map((point) => point.score), 1);
+  return `
+    <div class="panel-label" style="margin-top:16px">Score history</div>
+    <div class="sparkline">${points.map((point) => `<i title="Cycle ${point.cycleId}: ${point.score}" style="height:${Math.round(point.score / max * 29) + 5}px"></i>`).join('')}</div>`;
 }
 
 function renderSeeds() {
-  const list = document.getElementById('proposal-list');
-  const { static: statics, dynamic } = seedsData;
-
-  const dynHtml = dynamic.length === 0
-    ? '<p style="color:var(--muted);font-size:13px;padding:8px 0">No dynamic seeds yet — they appear after the first cycle with useful research.</p>'
-    : dynamic.map(s => `
-      <div style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:12px 14px;display:flex;align-items:flex-start;gap:12px">
-        <div style="background:var(--purple-dim);color:var(--purple);border-radius:50%;width:36px;height:36px;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;flex-shrink:0">×${s.frequency}</div>
-        <div style="flex:1;min-width:0">
-          <div style="font-weight:600;font-size:13px;margin-bottom:3px">${escHtml(s.label)}</div>
-          <div style="font-family:var(--mono);font-size:11px;color:var(--muted);margin-bottom:4px">${escHtml(s.query)}</div>
-          <div style="display:flex;gap:8px;flex-wrap:wrap">
-            <span style="font-size:11px;color:var(--muted)">GitHub: <span style="color:var(--text)">${escHtml(s.githubQuery)}</span></span>
-          </div>
-        </div>
-        <div style="font-size:11px;color:var(--muted);text-align:right;flex-shrink:0">
-          <div>First: cycle #${s.firstCycleId}</div>
-          <div>Last: cycle #${s.lastCycleId}</div>
-          <div>${relTime(s.lastSeenAt)}</div>
-        </div>
-      </div>`).join('');
-
-  const staticHtml = statics.map(s => `
-    <div style="background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:9px 12px;display:flex;gap:10px;align-items:center">
-      <span style="font-size:12px;font-weight:500;flex:1">${escHtml(s.label)}</span>
-      <span style="font-family:var(--mono);font-size:11px;color:var(--muted)">${escHtml(s.query.replace(/\+/g,' '))}</span>
-    </div>`).join('');
-
-  list.innerHTML = `
-    <div style="display:flex;flex-direction:column;gap:20px;padding-bottom:20px">
-      <div>
-        <div style="font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);font-weight:600;margin-bottom:10px">
-          🧠 Dynamic Seeds (${dynamic.length}) — extracted from research insights
-        </div>
-        <div style="display:flex;flex-direction:column;gap:8px">${dynHtml}</div>
+  const dossier = document.getElementById('proposal-dossier');
+  const dynamic = seedsData.dynamic || [];
+  const statics = seedsData.static || [];
+  dossier.innerHTML = `
+    <div class="view-page">
+      <h1 class="view-title">Search seeds</h1>
+      <p class="view-note">Research topics feeding future proposals. The operations rail remains live while you inspect discovery inputs.</p>
+      <div class="card">
+        <div class="panel-label">Dynamic seeds / ${dynamic.length}</div>
+        ${dynamic.length ? dynamic.map((seed) => `<div class="evidence-item"><div>${escHtml(seed.label)}</div><div class="evidence-relevance">${escHtml(seed.query)} / seen ${seed.frequency} times</div></div>`).join('') : '<div class="body-text">No dynamic seeds yet.</div>'}
       </div>
-      <div>
-        <div style="font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);font-weight:600;margin-bottom:10px">
-          📐 Static Seeds (${statics.length}) — hardcoded baseline topics
-        </div>
-        <div style="display:flex;flex-direction:column;gap:6px">${staticHtml}</div>
+      <div class="card">
+        <div class="panel-label">Baseline seeds / ${statics.length}</div>
+        ${statics.map((seed) => `<div class="evidence-item"><div>${escHtml(seed.label)}</div><div class="evidence-relevance">${escHtml(seed.query.replace(/\+/g, ' '))}</div></div>`).join('')}
       </div>
     </div>`;
 }
 
+function renderScoringRecord(record, expanded = false) {
+  const low = Number(record.relevanceScore) < Number(record.threshold || 0);
+  const insights = (record.insights || []).map((insight) => `<li>${escHtml(insight)}</li>`).join('');
+  return `
+    <div class="card score-history-item" onclick="openResearchScoring('${encodeURIComponent(record.itemId)}')">
+      <div class="row">
+        <div><div class="card-title">${escHtml(record.title)}</div><div class="chips"><span class="chip ${record.kept ? 'approved' : 'pending'}">${record.kept ? 'kept' : 'dropped'}</span><span class="chip">${escHtml(record.source)}</span><span class="chip">${escHtml(record.pipeline)}</span></div></div>
+        <div class="score-pill${low ? ' low' : ''}">${record.relevanceScore}/10</div>
+      </div>
+      <div class="panel-label" style="margin-top:12px">Reason</div>
+      <div class="body-text">${escHtml(record.relevanceReason || 'No scoring reason recorded.')}</div>
+      ${expanded ? `
+        <div class="panel-label" style="margin-top:12px">Summary</div>
+        <div class="body-text">${escHtml(record.summary || record.abstract || '')}</div>
+        ${insights ? `<div class="panel-label" style="margin-top:12px">Insights</div><ul class="body-text">${insights}</ul>` : ''}
+        <div class="panel-label" style="margin-top:12px">Raw abstract / description</div>
+        <div class="body-text">${escHtml(record.abstract || '')}</div>
+        <div class="panel-label" style="margin-top:12px">Scoring metadata</div>
+        <div class="body-text">Model: ${escHtml(record.model)}<br>Threshold: ${record.threshold}/10<br>Scored: ${escHtml(new Date(record.scoredAt).toLocaleString())}<br><a href="${escHtml(record.url)}" target="_blank" rel="noopener">Open source</a></div>
+      ` : `<div class="evidence-relevance">${escHtml(new Date(record.scoredAt).toLocaleString())} / ${escHtml(record.model)}</div>`}
+    </div>`;
+}
+
+function renderScoringHistory() {
+  const dossier = document.getElementById('proposal-dossier');
+  const selected = selectedScoringItem?.history?.[0];
+  dossier.innerHTML = `
+    <div class="view-page">
+      <div class="row"><div><h1 class="view-title">Research scoring history</h1><p class="view-note">Every paper/repo scored by the distiller, including dropped items and the reason for each score.</p></div><button class="btn" onclick="loadData()">Refresh</button></div>
+      ${selected ? `<div class="panel-label">Selected from live activity</div>${renderScoringRecord(selected, true)}` : ''}
+      <div class="panel-label" style="margin-top:12px">Recent scoring decisions / ${scoringHistory.length}</div>
+      ${scoringHistory.length ? scoringHistory.map((record) => renderScoringRecord(record)).join('') : '<div class="view-empty">No scoring history recorded yet. New cycles will populate this tab.</div>'}
+    </div>`;
+}
+
+async function openResearchScoring(encodedId) {
+  const itemId = decodeURIComponent(encodedId);
+  try {
+    selectedScoringItem = await api('GET', `/api/research/items/${encodeURIComponent(itemId)}/scoring`);
+    currentView = 'scoring';
+    setActiveNavigation('scoring');
+    renderWorkspace();
+  } catch (error) {
+    toast(`Scoring details unavailable: ${error.message}`, 'var(--orange)');
+  }
+}
+
+function proposalTitle(id) {
+  return allProposals.find((proposal) => proposal.id === id)?.title || id.slice(0, 8);
+}
+
+function renderReviewProposal(id) {
+  const proposal = allProposals.find((item) => item.id === id);
+  if (!proposal) return `<div class="body-text">${escHtml(id)} / proposal unavailable</div>`;
+  return `
+    <button class="review-proposal" onclick="openProposalFromPreReview('${proposal.id}')">
+      <span class="review-proposal-score">${proposal.score}</span>
+      <span class="review-proposal-title">${escHtml(proposal.title)}<br><span class="chip ${proposal.status}">${escHtml(proposal.status)}</span></span>
+      <span class="review-proposal-open">Review details</span>
+    </button>`;
+}
+
+function openProposalFromPreReview(id) {
+  const proposal = allProposals.find((item) => item.id === id);
+  if (!proposal) {
+    toast('This proposal is no longer available in the queue.', 'var(--orange)');
+    return;
+  }
+  const statusNavigation = document.querySelector(`.filter-btn[data-filter="${proposal.status}"]`);
+  currentFilter = statusNavigation ? proposal.status : 'all';
+  selectedProposalId = id;
+  activeDossierTab = 'evidence';
+  currentView = 'proposals';
+  setActiveNavigation(currentFilter);
+  renderWorkspace();
+}
+
+function renderPreReview() {
+  const dossier = document.getElementById('proposal-dossier');
+  if (!preReview) {
+    dossier.innerHTML = `<div class="view-empty"><div><p>No cloud pre-review exists for this checkpoint.</p><button class="btn btn-approve" style="margin-top:14px" onclick="runPreReviewNow()">Run Pre-review</button></div></div>`;
+    return;
+  }
+  const batches = preReview.batches.map((batch) => `
+    <div class="card">
+      <div class="row">
+        <div><div class="card-title">${escHtml(batch.title)}</div><div class="chips"><span class="chip pending">${escHtml(batch.verdict)}</span><span class="chip cloud">${batch.batchScore}/100</span><span class="chip">${batch.proposalIds.length} proposals</span>${batch.applyMode ? `<span class="chip">${escHtml(batch.applyMode)}</span>` : ''}</div></div>
+        <button class="btn btn-approve" onclick="applyReviewBatch('${batch.id}')">Apply Batch</button>
+      </div>
+      <div class="panel-label" style="margin-top:15px">Rationale</div>
+      <div class="body-text">${escHtml(batch.rationale)}</div>
+      <div class="panel-label" style="margin-top:15px">Expected benefit</div>
+      <div class="body-text">${escHtml(batch.expectedBenefit || 'No combined benefit provided.')}</div>
+      ${batch.riskNotes?.length ? `<div class="panel-label" style="margin-top:15px">Risks</div><div class="body-text">${batch.riskNotes.map(escHtml).join('<br>')}</div>` : ''}
+      ${batch.mergedPatch ? `<div class="panel-label" style="margin-top:15px">Custom combined patch</div><div class="body-text">${escHtml(batch.mergeRationale || 'Pre-review supplied one merged patch instead of applying each patch separately.')}</div>${batch.mergeWarnings?.length ? `<div class="body-text">${batch.mergeWarnings.map(escHtml).join('<br>')}</div>` : ''}${renderDiff(batch.mergedPatch)}` : ''}
+      <div class="panel-label" style="margin-top:15px">Proposals included</div>
+      <div class="review-proposal-list">${batch.proposalIds.map(renderReviewProposal).join('')}</div>
+    </div>`).join('');
+  const conflicts = (preReview.conflicts || []).map((conflict) => `
+    <div class="card risk-note">
+      <div class="card-title" style="color:var(--orange)">${escHtml(conflict.title)}</div>
+      <div class="panel-label" style="margin-top:12px">Conflict analysis</div>
+      <div class="body-text">${escHtml(conflict.rationale)}</div>
+      <div class="panel-label" style="margin-top:12px">In conflict</div>
+      <div class="review-proposal-list">${conflict.conflictingProposalIds.map(renderReviewProposal).join('')}</div>
+      <div class="panel-label" style="margin-top:12px">Preferred</div>
+      <div class="body-text">${conflict.preferredProposalIds.map((id) => escHtml(proposalTitle(id))).join('<br>') || '--'}</div>
+      <div class="panel-label" style="margin-top:12px">Defer</div>
+      <div class="body-text">${conflict.deferredProposalIds.map((id) => escHtml(proposalTitle(id))).join('<br>') || '--'}</div>
+      ${conflict.mergeProposal ? `<div class="panel-label" style="margin-top:12px">Merge option</div><div class="body-text"><strong>${escHtml(conflict.mergeProposal.title)}</strong><br>${escHtml(conflict.mergeProposal.suggestedChange || conflict.mergeProposal.summary || '')}</div>` : ''}
+    </div>`).join('');
+  dossier.innerHTML = `
+    <div class="view-page">
+      <div class="row"><div><h1 class="view-title">Cloud pre-review</h1><p class="view-note">${escHtml(preReview.summary)} / ${preReview.proposalCount} proposals reviewed</p></div><button class="btn" onclick="runPreReviewNow()">Re-run</button></div>
+      ${batches || '<div class="view-empty">No recommended batches.</div>'}
+      ${conflicts ? `<div class="panel-label" style="margin-top:12px">Conflicts / merge options</div>${conflicts}` : ''}
+    </div>`;
+}
+
 async function runPreReviewNow() {
-  toast('🧑‍⚖️ Running cloud pre-review…', 'var(--accent)');
+  toast('Running cloud pre-review...', 'var(--cyan)');
   const result = await api('POST', '/api/pre-review/run');
-  if (result.ok) toast('✅ Pre-review ready', 'var(--green)');
-  else toast('⚠️ Pre-review failed or returned no report', 'var(--orange)');
+  toast(result.ok ? 'Pre-review ready.' : 'Pre-review returned no report.', result.ok ? 'var(--green)' : 'var(--orange)');
   await loadData();
   showPreReviewTab();
 }
 
 async function applyReviewBatch(batchId) {
-  if (!confirm('Apply every pending proposal in this recommended batch?')) return;
+  const batch = preReview?.batches?.find((item) => item.id === batchId);
+  const action = batch?.mergedPatch
+    ? 'Apply the custom combined patch from this pre-review batch?'
+    : 'Apply every pending proposal patch in this recommended batch?';
+  if (!confirm(action)) return;
   const result = await api('POST', `/api/pre-review/batches/${batchId}/apply`);
-  if (result.ok) {
-    const msg = result.mode === 'cloud-merge'
-      ? '✅ Batch applied via cloud-merged patch'
-      : '✅ Batch applied cleanly';
-    toast(msg, 'var(--green)');
-  } else {
-    toast(`⚠️ Batch apply failed${result.error ? ': ' + result.error.slice(0, 80) : ''}`, 'var(--orange)');
-  }
+  toast(result.ok ? 'Batch application complete.' : `Batch apply failed: ${result.error || 'unknown error'}`, result.ok ? 'var(--green)' : 'var(--orange)');
   await loadData();
   showPreReviewTab();
 }
 
-function proposalTitle(id) {
-  const p = allProposals.find(x => x.id === id);
-  return p ? p.title : id.slice(0, 8);
-}
-
-function renderPreReview() {
-  const list = document.getElementById('proposal-list');
-  if (!preReview) {
-    list.innerHTML = `<div class="empty-state"><div class="icon">🧑‍⚖️</div><div>No cloud pre-review yet.</div><button class="btn btn-approve" onclick="runPreReviewNow()" style="margin-top:12px">Run Cloud Pre-review</button></div>`;
-    return;
-  }
-
-  const batchHtml = preReview.batches.map(b => `
-    <div class="card" style="padding:14px">
-      <div style="display:flex;gap:10px;align-items:flex-start;justify-content:space-between;flex-wrap:wrap">
-        <div style="min-width:0;flex:1">
-          <div style="font-size:15px;font-weight:700;color:var(--text)">${escHtml(b.title)}</div>
-          <div class="card-chips">
-            <span class="chip status-pending">${escHtml(b.verdict)}</span>
-            <span class="chip cloud">${b.batchScore}/100</span>
-            <span class="chip file">${b.proposalIds.length} proposals</span>
-          </div>
-        </div>
-        <button class="btn btn-approve" onclick="applyReviewBatch('${b.id}')">Apply batch</button>
-      </div>
-      <div class="detail-section" style="margin-top:12px">
-        <div class="detail-label">Rationale</div>
-        <div class="detail-text">${escHtml(b.rationale)}</div>
-      </div>
-      <div class="detail-section">
-        <div class="detail-label">Expected benefit</div>
-        <div class="detail-text">${escHtml(b.expectedBenefit)}</div>
-      </div>
-      ${b.riskNotes?.length ? `<div class="detail-section"><div class="detail-label">Risks</div><div class="detail-text">${b.riskNotes.map(r => '• ' + escHtml(r)).join('<br>')}</div></div>` : ''}
-      <div class="detail-section">
-        <div class="detail-label">Proposals</div>
-        <div class="evidence-list">${b.proposalIds.map(id => `<div class="evidence-item">${escHtml(proposalTitle(id))}</div>`).join('')}</div>
-      </div>
-    </div>`).join('');
-
-  const conflictHtml = preReview.conflicts.length ? `
-    <div style="font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);font-weight:600;margin:8px 0">Conflicts / Merge options</div>
-    ${preReview.conflicts.map(c => `
-      <div class="card" style="padding:14px;border-color:var(--orange)">
-        <div style="font-weight:700;color:var(--orange)">⚠️ ${escHtml(c.title)}</div>
-        <div class="detail-text" style="margin-top:8px">${escHtml(c.rationale)}</div>
-        <div class="detail-section"><div class="detail-label">Prefer</div><div class="detail-text">${c.preferredProposalIds.map(proposalTitle).map(escHtml).join('<br>')}</div></div>
-        <div class="detail-section"><div class="detail-label">Defer</div><div class="detail-text">${c.deferredProposalIds.map(proposalTitle).map(escHtml).join('<br>') || '—'}</div></div>
-        ${c.mergeProposal ? `<div class="detail-section"><div class="detail-label">Merge proposal option</div><div class="detail-text"><strong>${escHtml(c.mergeProposal.title)}</strong><br>${escHtml(c.mergeProposal.summary || '')}<br><br>${escHtml(c.mergeProposal.suggestedChange || '')}</div></div>` : ''}
-      </div>`).join('')}` : '';
-
-  list.innerHTML = `
-    <div style="display:flex;flex-direction:column;gap:12px;padding-bottom:20px">
-      <div class="card" style="padding:14px;border-color:#2a4a6a">
-        <div style="display:flex;justify-content:space-between;gap:10px;align-items:center;flex-wrap:wrap">
-          <div><strong>🧑‍⚖️ Cloud pre-review</strong><div style="font-size:12px;color:var(--muted)">${escHtml(preReview.model)} · ${relTime(preReview.createdAt)} · ${preReview.proposalCount} proposals reviewed</div></div>
-          <button class="btn btn-expand" onclick="runPreReviewNow()">Re-run</button>
-        </div>
-        <div class="detail-text" style="margin-top:10px">${escHtml(preReview.summary)}</div>
-      </div>
-      ${batchHtml || '<div class="empty-state">No batches returned.</div>'}
-      ${conflictHtml}
-    </div>`;
-}
-
-// ─── Render ───────────────────────────────────────────────────────────────────
-function renderProposals() {
-  if (showingPreReview) { renderPreReview(); return; }
-  if (showingSeeds) { renderSeeds(); return; }
-  const list = document.getElementById('proposal-list');
-  const filtered = currentFilter === 'all'
-    ? allProposals
-    : allProposals.filter(p => p.status === currentFilter);
-
-  if (filtered.length === 0) {
-    list.innerHTML = `<div class="empty-state"><div class="icon">📭</div><div>No ${currentFilter} proposals yet.</div></div>`;
-    return;
-  }
-
-  list.innerHTML = filtered.map(renderCard).join('');
-}
-
-function scoreClass(s) {
-  if (s >= 70) return 'high';
-  if (s >= 45) return 'mid';
-  return 'low';
-}
-
-function statusChipClass(s) { return 'status-' + s; }
-
-function renderCard(p) {
-  const expanded = expandedIds.has(p.id);
-  const canAct = p.status === 'pending';
-  const breakdown = p.scoreBreakdown || { novelty: 0, impact: 0, feasibility: 0, evidenceQuality: 0 };
-
-  // Score history sparkline
-  const hist = (p.scoreHistory || []).slice(-12);
-  const maxS = Math.max(...hist.map(h => h.score), 1);
-  const sparkline = hist.map(h =>
-    `<div class="score-bar-spark" title="Cycle ${h.cycleId}: ${h.score}" style="height:${Math.round((h.score / maxS) * 28) + 4}px"></div>`
-  ).join('');
-
-  // Diff rendering
-  let diffHtml = '';
-  if (p.patch) {
-    const lines = p.patch.split('\n').map(line => {
-      let cls = 'ctx';
-      if (line.startsWith('+') && !line.startsWith('+++')) cls = 'add';
-      else if (line.startsWith('-') && !line.startsWith('---')) cls = 'del';
-      else if (line.startsWith('@@') || line.startsWith('---') || line.startsWith('+++')) cls = 'meta';
-      return `<div class="diff-line ${cls}">${escHtml(line)}</div>`;
-    }).join('');
-    diffHtml = `
-      <div class="detail-section">
-        <div class="detail-label">Patch Preview</div>
-        <div class="diff-block">${lines}</div>
-      </div>`;
-  }
-
-  const evidenceHtml = (p.evidence || []).map(e => `
-    <div class="evidence-item">
-      <a href="${escHtml(e.url)}" target="_blank" rel="noopener">${escHtml(e.title)}</a>
-      <div class="evidence-relevance">${escHtml(e.relevance || '')}</div>
-    </div>`).join('');
-
-  const applyErrorHtml = p.applyError
-    ? `<div class="apply-error">⚠️ Patch apply failed: ${escHtml(p.applyError)}</div>` : '';
-
-  return `
-<div class="card${expanded ? ' selected' : ''}" id="card-${p.id}">
-  <div class="card-header" onclick="toggleExpand('${p.id}')">
-    <div class="score-ring ${scoreClass(p.score)}">${p.score}</div>
-    <div class="card-meta">
-      <div class="card-title" title="${escHtml(p.title)}">${escHtml(p.title)}</div>
-      <div class="card-summary">${escHtml(p.summary || '')}</div>
-      <div class="card-chips">
-        <span class="chip status-${p.status}">${p.status}</span>
-        ${p.source === 'cloud' ? `<span class="chip cloud">✨ cloud${cloudModel ? ': ' + escHtml(cloudModel.split('/').pop()) : ''}</span>` : ''}
-        ${p.targetFile ? `<span class="chip file">${escHtml(p.targetFile)}</span>` : ''}
-        ${p.patch ? `<span class="chip" style="background:var(--purple-dim);color:var(--purple)">has patch</span>` : ''}
-      </div>
-    </div>
-    <div class="card-actions" onclick="event.stopPropagation()">
-      ${canAct ? `
-        <button class="btn btn-approve" onclick="approveProposal('${p.id}')">✓ Approve</button>
-        <button class="btn btn-reject"  onclick="rejectProposal('${p.id}')">✗ Reject</button>
-      ` : ''}
-      <button class="btn btn-expand" onclick="toggleExpand('${p.id}')" title="Toggle details">
-        ${expanded ? '▲' : '▼'}
-      </button>
-    </div>
-  </div>
-
-  <div class="card-detail${expanded ? ' open' : ''}">
-    <div class="detail-section">
-      <div class="detail-label">Rationale</div>
-      <div class="detail-text">${escHtml(p.rationale || '')}</div>
-    </div>
-
-    <div class="detail-section">
-      <div class="detail-label">Suggested Change</div>
-      <div class="detail-text">${escHtml(p.suggestedChange || '')}</div>
-    </div>
-
-    <div class="detail-section">
-      <div class="detail-label">Score Breakdown</div>
-      <div class="score-bars">
-        ${[['Novelty', breakdown.novelty], ['Impact', breakdown.impact], ['Feasibility', breakdown.feasibility], ['Evidence', breakdown.evidenceQuality]].map(([label, val]) => `
-          <div class="score-bar-row">
-            <span class="score-bar-label">${label}</span>
-            <div class="score-bar-track"><div class="score-bar-fill" style="width:${(val/25*100).toFixed(1)}%"></div></div>
-            <span class="score-bar-val">${val}/25</span>
-          </div>`).join('')}
-      </div>
-    </div>
-
-    ${hist.length > 1 ? `
-    <div class="detail-section">
-      <div class="detail-label">Score History (${hist.length} cycles)</div>
-      <div class="score-history">${sparkline}</div>
-    </div>` : ''}
-
-    ${evidenceHtml ? `
-    <div class="detail-section">
-      <div class="detail-label">Evidence (${(p.evidence || []).length})</div>
-      <div class="evidence-list">${evidenceHtml}</div>
-    </div>` : ''}
-
-    ${diffHtml}
-    ${applyErrorHtml}
-
-    <div style="font-size:11px;color:var(--muted)">
-      ${p.source === 'cloud' ? `<div style="font-size:11px;color:#58c4f0;margin-bottom:3px">✨ Generated by cloud synthesis${cloudModel ? ' — ' + escHtml(cloudModel) : ''} (${p.sourceIds?.length||0} research items)</div>` : ''}
-      Created cycle #${p.cycleId} · ${p.createdAt ? relTime(p.createdAt) : ''}
-    </div>
-  </div>
-</div>`;
-}
-
-// ─── Actions ──────────────────────────────────────────────────────────────────
 async function approveProposal(id) {
-  const btns = document.querySelectorAll(`#card-${id} button`);
-  btns.forEach(b => b.disabled = true);
+  disableSelectedActions(id);
   const result = await api('POST', `/api/proposals/${id}/approve`);
-  if (result.status === 'applied') toast('✅ Patch applied to based-agent!', 'var(--green)');
-  else if (result.status === 'approved') toast('✅ Proposal approved (manual apply needed)', 'var(--green)');
-  else if (result.status === 'apply-failed') toast('⚠️ Approved but patch failed — see details', 'var(--orange)');
-  else toast('Approved');
+  toast(result.status === 'apply-failed' ? 'Approved, but patch application failed.' : 'Proposal approval recorded.', result.status === 'apply-failed' ? 'var(--orange)' : 'var(--green)');
   await loadData();
 }
 
 async function rejectProposal(id) {
-  const btns = document.querySelectorAll(`#card-${id} button`);
-  btns.forEach(b => b.disabled = true);
+  disableSelectedActions(id);
   await api('POST', `/api/proposals/${id}/reject`);
-  toast('❌ Proposal rejected', 'var(--muted)');
+  toast('Proposal rejected.', 'var(--muted)');
   await loadData();
+}
+
+function disableSelectedActions(id) {
+  document.querySelectorAll(`#card-${id} button`).forEach((button) => { button.disabled = true; });
 }
 
 async function resumeLoop() {
-  document.getElementById('resume-btn').textContent = '⏳ Resuming…';
-  document.getElementById('resume-btn').disabled = true;
+  const button = document.getElementById('resume-btn');
+  button.disabled = true;
+  button.textContent = 'Resuming...';
   await api('POST', '/api/resume-loop');
-  toast('🔁 Research loop resumed!', 'var(--green)');
+  toast('Research loop resumed.', 'var(--green)');
   await loadData();
 }
 
-// ─── Expand/collapse ──────────────────────────────────────────────────────────
-function toggleExpand(id) {
-  if (expandedIds.has(id)) expandedIds.delete(id);
-  else expandedIds.add(id);
-  renderProposals();
-  // Re-scroll to card
-  setTimeout(() => document.getElementById('card-' + id)?.scrollIntoView({ block: 'nearest' }), 10);
-}
-
-// ─── Helpers ──────────────────────────────────────────────────────────────────
-function escHtml(s) {
-  return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-}
-
-function relTime(iso) {
-  const d = new Date(iso);
-  const diff = (d - Date.now()) / 1000;
-  const abs = Math.abs(diff);
-  if (abs < 60) return 'just now';
-  if (abs < 3600) return `${Math.round(abs / 60)}m ${diff < 0 ? 'ago' : 'from now'}`;
-  if (abs < 86400) return `${Math.round(abs / 3600)}h ${diff < 0 ? 'ago' : 'from now'}`;
-  return d.toLocaleDateString();
-}
-
-// ─── Polling ──────────────────────────────────────────────────────────────────
-loadData();
-setInterval(loadData, 30_000); // refresh every 30s
-
-// ─── Activity panel ─────────────────────────────────────────────────────────────────
-
-const TYPE_ICONS = {
-  'cycle-start':   '🔄',
-  'cycle-end':     '✅',
-  'crawl':         '🔍',
-  'crawl-result':  '📥',
-  'distill-start': '🧠',
-  'distill-item':  '•',
-  'distill-end':   '📊',
-  'keywords':      '💡',
-  'keyword-result':'🏷️',
-  'generate-start':'⚡',
-  'proposal-new':  '📝',
-  'generate-end':  '📦',
-  'rerank-start':  '🔀',
-  'rerank-end':    '🎯',
-  'checkpoint':    '⏰',
-  'resume':        '▶️',
-  'info':          'ℹ️',
-  'warn':          '⚠️',
-  'error':         '❌',
-};
-
-const ACTIVE_TYPES = new Set([
-  'crawl','distill-start','distill-item','keywords','generate-start','rerank-start'
-]);
-
-let activityVisible = false;
-let sseSource = null;
-let logEntries = [];  // capped ring buffer
-const LOG_CAP = 300;
-let userScrolledUp = false;
-
 function setActivityVisible(visible) {
   activityVisible = visible;
-  const panel = document.getElementById('activity-panel');
-  const btn   = document.getElementById('activity-toggle-btn');
-  if (!panel || !btn) return;
-  panel.classList.toggle('collapsed', !activityVisible);
-  btn.textContent = activityVisible ? '✕ Live' : '📶 Live';
-  btn.style.color = activityVisible ? 'var(--accent)' : '';
+  const rail = document.getElementById('operations-rail');
+  const button = document.getElementById('activity-toggle-btn');
+  rail.classList.toggle('open', visible);
+  button.setAttribute('aria-expanded', String(visible));
 }
 
 function toggleActivity() {
   setActivityVisible(!activityVisible);
 }
 
-function pushLogEntry(evt) {
-  logEntries.push(evt);
+function pushLogEntry(event) {
+  logEntries.push(event);
   if (logEntries.length > LOG_CAP) logEntries.shift();
-
   const log = document.getElementById('activity-log');
-  if (!log) return;
-
-  const time = new Date(evt.timestamp).toLocaleTimeString([], { hour:'2-digit', minute:'2-digit', second:'2-digit' });
-  const icon = TYPE_ICONS[evt.type] || '∙';
-
-  const div = document.createElement('div');
-  div.className = `log-entry level-${evt.level}`;
-  div.innerHTML =
-    `<span class="log-time">${time}</span>` +
-    `<span class="log-icon">${icon}</span>` +
-    `<span class="log-msg">${escHtml(evt.message)}</span>`;
-  log.appendChild(div);
-
-  // Trim DOM to LOG_CAP entries
-  while (log.children.length > LOG_CAP) log.removeChild(log.firstChild);
-
-  // Auto-scroll unless user has manually scrolled up
-  if (!userScrolledUp) {
-    log.scrollTop = log.scrollHeight;
+  const time = new Date(event.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+  const item = document.createElement('div');
+  item.className = `log-entry level-${event.level}${event.researchItemId ? ' clickable' : ''}`;
+  item.innerHTML = `<span class="log-time">${time}</span><span class="log-icon">${EVENT_MARKS[event.type] || '.'}</span><span class="log-msg">${escHtml(event.message)}${event.relevanceReason ? `<br><span class="evidence-relevance">${escHtml(event.relevanceReason)}</span>` : ''}</span>`;
+  if (event.researchItemId) {
+    item.title = 'Open scoring details';
+    item.onclick = () => openResearchScoring(encodeURIComponent(event.researchItemId));
   }
-
-  // Update the "currently" indicator for active step types
-  if (ACTIVE_TYPES.has(evt.type)) {
-    const el = document.getElementById('current-step');
-    if (el) el.innerHTML = `<span class="spinner"></span> ${escHtml(evt.message)}`;
-  } else if (evt.type === 'cycle-end' || evt.type === 'info') {
-    const el = document.getElementById('current-step');
-    if (el) el.innerHTML = escHtml(evt.message);
-  } else if (evt.type === 'checkpoint') {
-    const el = document.getElementById('current-step');
-    if (el) el.innerHTML = `⏰ ${escHtml(evt.message)}`;
+  log.appendChild(item);
+  while (log.children.length > LOG_CAP) log.removeChild(log.firstChild);
+  setText('log-count', `${logEntries.length} event${logEntries.length === 1 ? '' : 's'}`);
+  if (!userScrolledUp) log.scrollTop = log.scrollHeight;
+  if (ACTIVE_TYPES.has(event.type)) {
+    document.getElementById('current-step').innerHTML = `<span class="spinner"></span>${escHtml(event.message)}`;
+  } else if (event.type === 'checkpoint' || event.type === 'cycle-end' || event.type === 'resume' || event.type === 'info') {
+    setText('current-step', event.message);
   }
 }
 
 function connectSSE() {
-  if (sseSource) { sseSource.close(); sseSource = null; }
-
-  const dot    = document.getElementById('sse-dot');
+  if (sseSource) sseSource.close();
+  const dot = document.getElementById('sse-dot');
   const status = document.getElementById('sse-status');
-
   sseSource = new EventSource('/api/events');
-
   sseSource.onopen = () => {
-    dot.className    = 'sse-dot connected';
-    status.textContent = 'live';
-    status.style.color = 'var(--green)';
+    dot.className = 'signal connected';
+    status.textContent = 'connected';
   };
-
-  sseSource.onmessage = (e) => {
+  sseSource.onmessage = (message) => {
     try {
-      const evt = JSON.parse(e.data);
-      pushLogEntry(evt);
-      // If a new proposal arrives, refresh the proposal list
-      if (evt.type === 'proposal-new' || evt.type === 'cycle-end') {
-        loadData();
-      }
-    } catch { /* ignore malformed */ }
+      const event = JSON.parse(message.data);
+      pushLogEntry(event);
+      if (event.type === 'proposal-new' || event.type === 'cycle-end') loadData();
+    } catch { /* discard malformed events */ }
   };
-
   sseSource.onerror = () => {
-    dot.className    = 'sse-dot reconnecting';
-    status.textContent = 'reconnecting…';
-    status.style.color = 'var(--orange)';
+    dot.className = 'signal reconnecting';
+    status.textContent = 'reconnecting';
     sseSource.close();
-    sseSource = null;
-    setTimeout(connectSSE, 4_000);
+    setTimeout(connectSSE, 4000);
   };
 }
 
-// Detect manual scroll-up to suppress auto-scroll
-document.getElementById('activity-log')?.addEventListener('scroll', function() {
-  const log = this;
-  userScrolledUp = log.scrollTop < log.scrollHeight - log.clientHeight - 40;
+function scoreClass(score) {
+  return score >= 70 ? '' : score >= 45 ? 'mid' : 'low';
+}
+
+function setText(id, value) {
+  const element = document.getElementById(id);
+  if (element) element.textContent = value;
+}
+
+function escHtml(value) {
+  return String(value ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
+document.getElementById('activity-log').addEventListener('scroll', function() {
+  userScrolledUp = this.scrollTop < this.scrollHeight - this.clientHeight - 36;
 });
 
-// Desktop gets the live panel open by default; phones/tablets start collapsed.
-setActivityVisible(window.innerWidth > 980);
 window.addEventListener('resize', () => {
-  // Avoid auto-opening on mobile resize/orientation; only reopen when returning to desktop.
-  if (window.innerWidth > 980 && !activityVisible) setActivityVisible(true);
-  if (window.innerWidth <= 980 && activityVisible) setActivityVisible(false);
+  if (window.innerWidth > 1120) setActivityVisible(false);
 });
 
+loadData();
 connectSSE();
+setInterval(loadData, 30000);
 </script>
 </body>
 </html>

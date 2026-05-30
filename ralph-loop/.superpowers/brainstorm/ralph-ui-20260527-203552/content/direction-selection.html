@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RALPH UI Direction Selection</title>
+<style>
+  :root {
+    --page: #080b0d;
+    --panel: #10161a;
+    --panel-2: #152028;
+    --stroke: #26343b;
+    --text: #e8ede8;
+    --muted: #8b9a92;
+    --lime: #bdff57;
+    --amber: #ffc35c;
+    --cyan: #64dbd0;
+    --red: #ef6e5b;
+    --serif: Georgia, "Times New Roman", serif;
+    --mono: "IBM Plex Mono", "Cascadia Code", Consolas, monospace;
+    --sans: "Arial Narrow", "Roboto Condensed", Arial, sans-serif;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    min-height: 100vh;
+    background:
+      radial-gradient(circle at 10% 5%, rgba(189,255,87,.08), transparent 30%),
+      radial-gradient(circle at 100% 0%, rgba(100,219,208,.07), transparent 28%),
+      var(--page);
+    color: var(--text);
+    font-family: var(--sans);
+  }
+  .page {
+    max-width: 1500px;
+    margin: 0 auto;
+    padding: 34px 34px 42px;
+  }
+  .eyebrow {
+    color: var(--lime);
+    font: 600 11px/1 var(--mono);
+    letter-spacing: .18em;
+    text-transform: uppercase;
+    margin-bottom: 16px;
+  }
+  h1 {
+    margin: 0;
+    font: 500 clamp(34px, 4.5vw, 56px)/.98 var(--serif);
+    letter-spacing: -.045em;
+    max-width: 900px;
+  }
+  .intro {
+    max-width: 780px;
+    color: var(--muted);
+    font-size: 16px;
+    line-height: 1.5;
+    margin: 15px 0 30px;
+  }
+  .facts {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 28px;
+  }
+  .fact {
+    border: 1px solid var(--stroke);
+    background: #0e1417;
+    color: #aab8b0;
+    padding: 8px 12px;
+    border-radius: 999px;
+    font: 12px var(--mono);
+  }
+  .fact b { color: var(--lime); }
+  .cards {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(280px, 1fr));
+    gap: 16px;
+  }
+  .option {
+    border: 1px solid var(--stroke);
+    border-radius: 18px;
+    overflow: hidden;
+    background: rgba(15,20,23,.9);
+    transition: border-color .18s, transform .18s, box-shadow .18s;
+    cursor: pointer;
+    position: relative;
+  }
+  .option:hover, .option.selected {
+    transform: translateY(-3px);
+    border-color: var(--lime);
+    box-shadow: 0 20px 48px rgba(0,0,0,.3), 0 0 0 1px rgba(189,255,87,.2);
+  }
+  .option.selected:after {
+    content: "SELECTED";
+    position: absolute;
+    top: 12px; right: 12px;
+    color: #071003;
+    background: var(--lime);
+    border-radius: 999px;
+    padding: 5px 9px;
+    font: 700 10px var(--mono);
+    letter-spacing: .08em;
+  }
+  .canvas {
+    height: 372px;
+    background: #0b1013;
+    border-bottom: 1px solid var(--stroke);
+    padding: 11px;
+  }
+  .appbar {
+    height: 29px;
+    border: 1px solid var(--stroke);
+    background: #10181b;
+    border-radius: 7px;
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    padding: 0 9px;
+    font: 9px var(--mono);
+    color: var(--muted);
+    margin-bottom: 9px;
+  }
+  .wordmark { color: var(--text); font-weight: bold; letter-spacing: .15em; margin-right: auto; }
+  .led { height: 7px; width: 7px; border-radius: 99px; background: var(--lime); box-shadow: 0 0 10px var(--lime); }
+  .pause { color: var(--amber); }
+  .hero {
+    border: 1px solid rgba(255,195,92,.36);
+    border-radius: 7px;
+    color: var(--amber);
+    background: rgba(255,195,92,.06);
+    font: 9px var(--mono);
+    padding: 7px 9px;
+    margin-bottom: 9px;
+    display: flex;
+    justify-content: space-between;
+  }
+  .label { color: var(--muted); text-transform: uppercase; letter-spacing: .12em; font: 8px var(--mono); }
+  .micro { font: 8px/1.4 var(--mono); color: var(--muted); }
+  .white { color: var(--text); }
+  .lime { color: var(--lime); }
+  .cyan { color: var(--cyan); }
+  .amber { color: var(--amber); }
+  .line {
+    height: 5px; border-radius: 4px; background: #243038; margin-top: 7px;
+  }
+  .line.short { width: 58%; }
+  .line.good { background: rgba(189,255,87,.55); width: 86%; }
+  .line.cool { background: rgba(100,219,208,.45); width: 72%; }
+  .body {
+    padding: 16px 17px 18px;
+  }
+  .choice {
+    font: 700 10px var(--mono);
+    color: var(--lime);
+    letter-spacing: .16em;
+    margin-bottom: 8px;
+  }
+  h2 {
+    font: 500 23px/1.05 var(--serif);
+    letter-spacing: -.035em;
+    margin: 0 0 9px;
+  }
+  .body p {
+    margin: 0 0 14px;
+    color: var(--muted);
+    font-size: 13px;
+    line-height: 1.48;
+    min-height: 58px;
+  }
+  .tradeoff {
+    border-top: 1px solid var(--stroke);
+    padding-top: 11px;
+    font: 11px/1.5 var(--mono);
+    color: #acbab1;
+  }
+  .recommended {
+    display: inline-block;
+    margin-top: 11px;
+    border: 1px solid rgba(189,255,87,.36);
+    color: var(--lime);
+    padding: 5px 8px;
+    font: 10px var(--mono);
+    border-radius: 3px;
+  }
+
+  /* A: dossier */
+  .dossier-grid { display:grid; grid-template-columns: 92px 1fr; gap:8px; height: 283px; }
+  .queue, .report, .health, .patch, .evidence, .stream { border: 1px solid var(--stroke); border-radius: 7px; background:#10181b; padding:8px; }
+  .queue .entry { margin-top:7px; padding:6px; background:#162126; border-left:2px solid transparent; }
+  .queue .entry.active { border-color:var(--lime); background:rgba(189,255,87,.06); }
+  .report { display:grid; grid-template-rows:auto 1fr 74px; gap:7px; }
+  .report-title { font: bold 11px/1.25 var(--sans); }
+  .report-cols { display:grid; grid-template-columns: 1fr .72fr; gap:7px; }
+  .patch .add { color:var(--lime); }
+  .patch .del { color:var(--red); }
+
+  /* B: lab */
+  .lab-grid { display:grid; grid-template-columns: 1fr 105px; gap:8px; height:283px; }
+  .lab-main { display:grid; grid-template-rows:57px 94px 1fr; gap:7px; }
+  .scoreline { border:1px solid var(--stroke); border-radius:7px; padding:8px; background:#10181b; display:flex; align-items:center; gap:10px;}
+  .score { width:38px; height:38px; border:2px solid var(--lime); color:var(--lime); display:grid; place-items:center; border-radius:100%; font:bold 12px var(--mono);}
+  .probe { border:1px solid var(--stroke); border-radius:7px; background:#10181b; padding:8px; }
+  .tags { display:flex; flex-wrap:wrap; gap:4px; margin-top:7px; }
+  .tag { border:1px solid #2d4443; color:var(--cyan); border-radius:3px; padding:3px 5px; font:8px var(--mono); }
+  .rail { border:1px solid var(--stroke); border-radius:7px; padding:8px; background:#10181b; }
+  .railpoint { border-left:1px solid #324148; padding:0 0 12px 8px; }
+
+  /* C: command */
+  .command-grid { display:grid; grid-template-columns: 1fr 112px; gap:8px; height:283px; }
+  .command-main { display:grid; grid-template-rows:44px 100px 1fr; gap:7px;}
+  .vitals { display:flex; gap:5px;}
+  .vital { flex:1; border:1px solid var(--stroke); border-radius:6px; background:#10181b; padding:6px;}
+  .review-card { border:1px solid rgba(189,255,87,.27); border-radius:7px; background:#10181b; padding:8px; }
+  .review-split { display:grid; grid-template-columns: 1fr .8fr; gap:7px; margin-top:8px; }
+  .timeline { border:1px solid var(--stroke); border-radius:7px; background:#10181b; padding:8px; }
+  .ticker { height:22px; display:flex; gap:4px; align-items:end; margin-top:10px; }
+  .ticker i { width:10px; background:rgba(100,219,208,.42); display:block; border-radius:2px 2px 0 0; }
+  .events { border:1px solid var(--stroke); border-radius:7px; padding:8px; background:#10181b; }
+  .event { border-bottom:1px solid #1e292d; padding:7px 0; }
+  .footer {
+    color: var(--muted);
+    margin-top: 24px;
+    font: 12px/1.5 var(--mono);
+  }
+  @media (max-width: 1080px) { .cards { grid-template-columns:1fr; } }
+</style>
+</head>
+<body>
+<main class="page">
+  <div class="eyebrow">RALPH / review console refresh</div>
+  <h1>Which evidence-first cockpit should guide the redesign?</h1>
+  <p class="intro">All directions preserve filters, proposal actions, pre-review, seeds, checkpoint control, and live activity. They differ in how strongly proposal proof competes with system health.</p>
+  <div class="facts">
+    <span class="fact"><b>CHECKPOINT</b> reached</span>
+    <span class="fact"><b>87</b> pending proposals</span>
+    <span class="fact"><b>#389</b> current cycle</span>
+    <span class="fact">Top proposal <b>94/100</b></span>
+  </div>
+  <section class="cards">
+    <article class="option" data-choice="a-dossier" onclick="toggleSelect(this)">
+      <div class="canvas">
+        <div class="appbar"><span class="wordmark">RALPH</span><span class="pause">CHECKPOINT</span><span class="led"></span></div>
+        <div class="hero"><span>Review required / 87 pending</span><span>CONTINUE LOOP</span></div>
+        <div class="dossier-grid">
+          <div class="queue">
+            <div class="label">Queue</div>
+            <div class="entry active"><span class="lime micro">94</span><div class="micro white">Judge bias</div></div>
+            <div class="entry"><span class="micro amber">91</span><div class="micro">Evo memory</div></div>
+            <div class="entry"><span class="micro amber">91</span><div class="micro">Audit trail</div></div>
+          </div>
+          <div class="report">
+            <div>
+              <div class="label">Proposal dossier</div>
+              <div class="report-title">Add judge bias sentinel and counterfactual packets</div>
+            </div>
+            <div class="report-cols">
+              <div class="evidence">
+                <div class="label">Evidence / Risk</div>
+                <div class="micro cyan">6 supporting papers</div>
+                <div class="line good"></div>
+                <div class="line cool"></div>
+                <div class="micro amber" style="margin-top:12px">Risk: promotion gate</div>
+              </div>
+              <div class="patch">
+                <div class="label">Patch</div>
+                <div class="micro add">+ order_swap</div>
+                <div class="micro add">+ identity_mask</div>
+                <div class="micro del">- blind trust</div>
+              </div>
+            </div>
+            <div class="health">
+              <div class="label">Health strip</div>
+              <div class="micro">cycle 389 / paused &nbsp; SSE live &nbsp; last run 24s</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="body">
+        <div class="choice">A / EVIDENCE DOSSIER</div>
+        <h2>Review room</h2>
+        <p>A selected proposal opens as the primary document: evidence, risk flags, and diff sit together, while loop health becomes a restrained strip.</p>
+        <div class="tradeoff"><span class="lime">Best for</span> careful approve/reject decisions.<br><span class="amber">Tradeoff</span> live operations are visible but secondary.</div>
+        <span class="recommended">Recommended</span>
+      </div>
+    </article>
+
+    <article class="option" data-choice="b-lab" onclick="toggleSelect(this)">
+      <div class="canvas">
+        <div class="appbar"><span class="wordmark">RALPH / LAB</span><span class="led"></span><span>HEALTHY</span></div>
+        <div class="hero"><span>HUMAN CHECKPOINT / investigate</span><span>87 items</span></div>
+        <div class="lab-grid">
+          <div class="lab-main">
+            <div class="scoreline"><div class="score">94</div><div><div class="micro lime">HIGH CONFIDENCE</div><div class="micro white">Judge bias sentinel</div></div></div>
+            <div class="probe">
+              <div class="label">Evidence probes</div>
+              <div class="tags"><span class="tag">order swap</span><span class="tag">self-pref</span><span class="tag">code bias</span><span class="tag">risk</span></div>
+              <div class="line good"></div>
+            </div>
+            <div class="patch">
+              <div class="label">Diff specimen</div>
+              <div class="micro add">+ buildBiasProbePackets()</div>
+              <div class="micro add">+ require_cross_model_panel</div>
+              <div class="micro">  persistDiagnostic(...)</div>
+            </div>
+          </div>
+          <div class="rail">
+            <div class="label">Cycle trace</div>
+            <div class="railpoint"><div class="micro lime">LIVE</div><div class="micro">checkpoint</div></div>
+            <div class="railpoint"><div class="micro cyan">24s</div><div class="micro">last run</div></div>
+            <div class="railpoint"><div class="micro amber">378</div><div class="micro">research</div></div>
+          </div>
+        </div>
+      </div>
+      <div class="body">
+        <div class="choice">B / ANALYSIS LAB</div>
+        <h2>Evidence microscope</h2>
+        <p>A technical evaluation station: proposal claims are grouped into probes, diff specimens, and risk tests, with a narrow lifecycle trace rail.</p>
+        <div class="tradeoff"><span class="lime">Best for</span> research-backed forensic reading.<br><span class="amber">Tradeoff</span> feels less like an operational dashboard.</div>
+      </div>
+    </article>
+
+    <article class="option" data-choice="c-command" onclick="toggleSelect(this)">
+      <div class="canvas">
+        <div class="appbar"><span class="wordmark">RALPH CONTROL</span><span class="pause">PAUSED FOR REVIEW</span></div>
+        <div class="command-grid">
+          <div class="command-main">
+            <div class="vitals">
+              <div class="vital"><div class="label">Cycle</div><div class="micro white">389</div></div>
+              <div class="vital"><div class="label">Pending</div><div class="micro lime">87</div></div>
+              <div class="vital"><div class="label">Stream</div><div class="micro cyan">LIVE</div></div>
+            </div>
+            <div class="review-card">
+              <div class="micro lime">94 / READY FOR REVIEW</div>
+              <div class="micro white">Add judge bias sentinel</div>
+              <div class="review-split">
+                <div><div class="label">Evidence</div><div class="line good"></div></div>
+                <div><div class="label">Patch</div><div class="micro add">+ 180</div></div>
+              </div>
+            </div>
+            <div class="timeline">
+              <div class="label">Throughput + health</div>
+              <div class="ticker"><i style="height:40%"></i><i style="height:62%"></i><i style="height:55%"></i><i style="height:84%"></i><i style="height:50%"></i><i style="height:72%"></i></div>
+            </div>
+          </div>
+          <div class="events">
+            <div class="label">Live feed</div>
+            <div class="event micro cyan">SSE connected</div>
+            <div class="event micro">Re-ranked 87</div>
+            <div class="event micro amber">Checkpoint</div>
+            <div class="event micro">Await human</div>
+          </div>
+        </div>
+      </div>
+      <div class="body">
+        <div class="choice">C / OPERATIONS DECK</div>
+        <h2>Mission control</h2>
+        <p>A health-forward console where proposal review is one active workload beside cycle vitals, throughput, and a persistent activity stream.</p>
+        <div class="tradeoff"><span class="lime">Best for</span> live loop supervision.<br><span class="amber">Tradeoff</span> less room for deep evidence reading.</div>
+      </div>
+    </article>
+  </section>
+  <p class="footer">Select a direction, or describe a blend. My recommendation is A because it makes proof and patch risk central while retaining a quiet operational pulse.</p>
+</main>
+</body>
+</html>
