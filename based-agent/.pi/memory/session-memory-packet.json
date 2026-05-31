@@ -1,0 +1,29 @@
+{
+  "generated_at": "2026-05-30T11:38:32.368Z",
+  "query_fingerprint": "e87f0112e750",
+  "instruction": "Revisit these memory cards as hypotheses, not truth. Verify stale or risky claims before relying on them.",
+  "cards": [
+    {
+      "id": "a191514623c8",
+      "kind": "risk",
+      "claim": "Auto summary is minimal; review changed files and evidence before promotion.",
+      "files": [
+        "based-agent/tmp-fix-paths2.mjs"
+      ],
+      "confidence": 0.65,
+      "revisit_reason": "Prior unresolved risk should be rechecked",
+      "source": "C:\\Users\\khail\\OneDrive\\Documents\\Dev\\agentic-coding-research\\based-agent\\.pi\\runs\\2026-05-29\\auto-1780052458048-1500e8a788fe-summary.json"
+    },
+    {
+      "id": "c2492a779476",
+      "kind": "repo_fact",
+      "claim": "Modified 1 file(s).",
+      "files": [
+        "based-agent/tmp-fix-paths2.mjs"
+      ],
+      "confidence": 0.55,
+      "revisit_reason": "Prior observed repo behavior",
+      "source": "C:\\Users\\khail\\OneDrive\\Documents\\Dev\\agentic-coding-research\\based-agent\\.pi\\runs\\2026-05-29\\auto-1780052458048-1500e8a788fe-summary.json"
+    }
+  ]
+}

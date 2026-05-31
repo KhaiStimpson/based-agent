@@ -1,7 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 
-export const REQUIRED_FILES = ["AGENTS.md", "package.json", ".pi/settings.json"];
+export const REQUIRED_FILES = ["AGENTS.md", "package.json", ".pi/settings.json", ".pi/autopilot.json"];
 export const REQUIRED_GLOBS = [
   { label: ".pi/extensions/*.ts", dir: ".pi/extensions", suffix: ".ts" },
   { label: ".pi/agents/*.md", dir: ".pi/agents", suffix: ".md" },

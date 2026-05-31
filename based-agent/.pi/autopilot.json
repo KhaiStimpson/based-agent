@@ -1,0 +1,44 @@
+{
+  "enabled": true,
+  "mode": "autonomous",
+  "retry_limit": 2,
+  "visibility": {
+    "announce_workflow": true,
+    "announce_skills": true,
+    "announce_memory": true,
+    "announce_retries": true,
+    "announce_reload": true
+  },
+  "working_memory": {
+    "enabled": true,
+    "promote_on_completion": true,
+    "failed_attempts_start_session_local": true
+  },
+  "working_skills": {
+    "enabled": true,
+    "proposal_first": true
+  },
+  "reload": {
+    "enabled": true,
+    "after_meaningful_working_write": true,
+    "strategy": "checkpointed"
+  },
+  "durable_memory": {
+    "write_mode": "automatic",
+    "allowed_modes": ["automatic", "proposal_first", "off"]
+  },
+  "evolution": {
+    "protected_change_mode": "proposal_first",
+    "auto_create_proposals": true,
+    "auto_apply_proposals": false
+  },
+  "review": {
+    "auto_review": "risk_based"
+  },
+  "external_research": {
+    "ralph_proposals_path": "../ralph-loop/data/proposals/proposals.json",
+    "use_applied_proposals": true,
+    "use_high_score_pending_as_inspiration": true,
+    "max_items": 5
+  }
+}

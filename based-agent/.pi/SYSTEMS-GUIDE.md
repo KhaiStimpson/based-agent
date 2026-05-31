@@ -11,16 +11,17 @@
 
 1. [Getting Started](#1-getting-started)
 2. [Directory Structure](#2-directory-structure)
-3. [16 Extensions — What They Do](#3-16-extensions)
-4. [13 Agents — When to Invoke Them](#4-13-agents)
-5. [13 Skills — How to Use /skill Commands](#5-13-skills)
-6. [7 Workflow Templates (A–G)](#6-7-workflow-templates)
-7. [9-Phase Implementation Roadmap](#7-9-phase-implementation-roadmap)
-8. [Self-Learning Evaluation Loop (Steps 1–7)](#8-self-learning-evaluation-loop)
-9. [Spawn Score Formula](#9-spawn-score-formula)
-10. [Judge Calibration Targets](#10-judge-calibration-targets)
-11. [Memory Types and How to Add Entries](#11-memory-types-and-how-to-add-entries)
-12. [Research Basis Summary](#12-research-basis-summary)
+3. [Autopilot Supervisor](#3-autopilot-supervisor)
+4. [Extensions — What They Do](#4-extensions)
+5. [13 Agents — When to Invoke Them](#5-13-agents)
+6. [13 Skills — Automatic Selection](#6-13-skills)
+7. [7 Workflow Templates (A–G)](#7-7-workflow-templates)
+8. [9-Phase Implementation Roadmap](#8-9-phase-implementation-roadmap)
+9. [Self-Learning Evaluation Loop (Steps 1–7)](#9-self-learning-evaluation-loop)
+10. [Spawn Score Formula](#10-spawn-score-formula)
+11. [Judge Calibration Targets](#11-judge-calibration-targets)
+12. [Memory Types and How to Add Entries](#12-memory-types-and-how-to-add-entries)
+13. [Research Basis Summary](#13-research-basis-summary)
 
 ---
 
@@ -61,6 +62,7 @@ The system has three configuration layers:
 |---|---|
 | `AGENTS.md` | Cross-tool operating contract — read by all agents at task start |
 | `.pi/settings.json` | Pi-specific resource discovery and feature flags |
+| `.pi/autopilot.json` | Autopilot autonomy, retry, memory, reload, review, and research-import settings |
 | `package.json` | Package manifest — pi uses this to discover extensions/skills/prompts |
 
 ### 1.4 First Run Checklist
@@ -69,9 +71,10 @@ Before using the system for the first time:
 
 1. **Review `AGENTS.md`** — understand safety boundaries and escalation conditions
 2. **Confirm two model families are available** — judge must differ from generator
-3. **Check `.pi/memory/` is writable** — memory-curator needs write access
+3. **Check `.pi/memory/` is writable** — memory-curator and autopilot completion promotion need write access
 4. **Verify `.pi/evals/judge-corpus/` exists** — judge-evolution extension writes here
 5. **Set up safety-gate extension** — prevents destructive shell commands (see Phase 1 roadmap)
+6. **Review `.pi/autopilot.json`** — default is autonomous, with proposal-first protected changes and checkpointed reload behavior
 
 ### 1.5 Running Your First Task
 
@@ -89,7 +92,7 @@ Before using the system for the first time:
 "The database connection pool keeps timing out — investigate and fix"
 ```
 
-Pi will route tasks through the appropriate workflow based on difficulty scoring. For complex tasks, it will invoke the scout agent first and produce a `context.md` artifact before planning.
+Pi will route tasks through the appropriate workflow based on difficulty scoring. Autopilot is the default supervisor: it profiles the task, selects skills, retrieves memory, records working memory during development, and coordinates validation/review/completion hooks without the user manually invoking each command.
 
 ---
 
@@ -101,25 +104,28 @@ based-agent/
 ├── package.json                       # Pi package manifest
 └── .pi/
     ├── settings.json                  # Pi settings: extensions, skills, prompts
+    ├── autopilot.json                 # Default automation policy
     ├── RESEARCH-REPORT.md             # Source research synthesis (18 papers)
     ├── SYSTEMS-GUIDE.md               # This file
-    ├── extensions/                    # TypeScript extensions (16 total)
-    │   ├── trace-ledger/
-    │   ├── topology-runner/
-    │   ├── spawn-controller/
-    │   ├── memory-slicer/
-    │   ├── lifelong-memory/
-    │   ├── prospective-agenda/
-    │   ├── attempt-summarizer/
-    │   ├── review-aggregator/
-    │   ├── validation-gate/
-    │   ├── config-linter/
-    │   ├── worktree-manager/
-    │   ├── evolution-governor/
-    │   ├── curriculum-generator/
-    │   ├── skill-registry/
-    │   ├── judge-evolution/
-    │   └── safety-gate/
+    ├── extensions/                    # TypeScript extensions
+    │   ├── autopilot.ts
+    │   ├── trace-ledger.ts
+    │   ├── topology-runner.ts
+    │   ├── spawn-controller.ts
+    │   ├── memory-slicer.ts
+    │   ├── lifelong-memory.ts
+    │   ├── prospective-agenda.ts
+    │   ├── attempt-summarizer.ts
+    │   ├── review-aggregator.ts
+    │   ├── validation-gate.ts
+    │   ├── config-linter.ts
+    │   ├── worktree-manager.ts
+    │   ├── evolution-governor.ts
+    │   ├── curriculum-generator.ts
+    │   ├── skill-registry.ts
+    │   ├── judge-evolution.ts
+    │   ├── safety-gate.ts
+    │   └── additional memory, skill, context, trajectory, and command-hub extensions
     ├── agents/                        # Agent definitions (13 total)
     │   ├── scout.md
     │   ├── researcher.md
@@ -179,7 +185,81 @@ based-agent/
 
 ---
 
-## 3. 16 Extensions
+## 3. Autopilot Supervisor
+
+Autopilot is the default operating layer for normal Pi usage. The user should be able to prompt for a build, fix, review, or research task and let the system choose the right skills, extensions, memory, validation, and review flow.
+
+### 3.1 Interaction Model
+
+```text
+user prompt
+  -> task profile and workflow selection
+  -> skill and memory selection
+  -> capability plan
+  -> working-memory updates during development
+  -> validation/review/retry
+  -> completion promotion, proposals, and runtime report
+```
+
+Autopilot announces its selected workflow, skills, relevant memory, and retry budget. It then injects operating instructions into the agent context so the chosen skills and extension capabilities are used even when the user did not call them by name.
+
+### 3.2 Automatic Capability Plan
+
+| Phase | Automatically incorporated components |
+|---|---|
+| Startup | `config-linter`, `memory-hygiene-gate`, `revisitable-memory-router`, `skill-ecosystem-auditor` when relevant |
+| Planning | `context-pack-builder`, `memory-slicer`, `spawn-controller`, `topology-runner` when complexity warrants it |
+| During work | `trace-ledger`, `safety-gate`, `validation-gate`, `working_memory_add`, retry steering |
+| Review | `review-aggregator`, `judge-evolution`, `eval-planning` when risk or prompt requires evaluation |
+| Completion | `attempt-summarizer`, `trajectory-auditor`, `context-memory-curator`, `skill-internalizer`, `skill-memory-curator`, `curriculum-generator`, `evolution-scanner`, `evolution-governor` |
+
+### 3.3 Memory During Development
+
+Autopilot writes working memory while the task is still active so the current session can use newly discovered constraints, failures, decisions, and validation signals. A checkpointed refresh injects the latest working-memory items back into the running context. At completion, eligible items promote according to `.pi/autopilot.json`.
+
+Failed-attempt lessons begin as session-local working memory. They can promote after task completion, which prevents premature durable memory pollution while still letting the current run learn from its own failures.
+
+### 3.4 Governed Changes
+
+Protected changes remain proposal-first. Autopilot may identify that an extension, skill, prompt, routing rule, topology, or policy should change, but those changes go through the evolution proposal/governor path instead of direct application.
+
+### 3.5 Configuration
+
+| Setting | Default | Purpose |
+|---|---:|---|
+| `enabled` | `true` | Enables the supervisor layer |
+| `mode` | `autonomous` | Uses relevant skills/extensions automatically |
+| `retry_limit` | `2` | Validation retry budget before escalation |
+| `working_memory.promote_on_completion` | `true` | Allows task-local memory to become durable after completion |
+| `durable_memory.write_mode` | `automatic` | Writes durable memory automatically; use `proposal_first` for review-first memory |
+| `working_skills.proposal_first` | `true` | Routes skill candidates into governed outputs |
+| `reload.strategy` | `checkpointed` | Refreshes working context at turn boundaries |
+| `review.auto_review` | `risk_based` | Runs review behavior when task risk justifies it |
+| `external_research.ralph_proposals_path` | `../ralph-loop/data/proposals/proposals.json` | Optional proposal corpus for local inspiration |
+
+### 3.6 Commands
+
+| Command | Use |
+|---|---|
+| `/autopilot` | Show current workflow, profile, skills, memory hits, capability plan, and artifact path |
+| `/autopilot reload` | Reload Pi resources after durable skill/prompt/extension changes |
+| `/autopilot promote` | Force completion-style working-memory promotion |
+| `/ba autopilot` | Command-hub pointer to the same status and reload controls |
+
+### 3.7 Artifacts
+
+Autopilot writes run-local artifacts under `.pi/runs/<date>/<run-id>/`:
+
+| Artifact | Purpose |
+|---|---|
+| `working-memory.jsonl` | Session-local facts, failures, decisions, observations, and validation signals |
+| `working-skills.jsonl` | Session-local skill candidates |
+| `context-pack-autopilot.md` | Compact profile, skill, capability, memory, and proposal inspiration pack |
+| `autopilot-runtime.json` | Completion report with profile, commands, files, failures, and promotion counts |
+
+---
+
+## 4. Extensions
 
 Extensions are TypeScript modules that register tools, event hooks, commands, and custom rendering in pi. They execute with system permissions. New extensions require human approval (see `AGENTS.md` Section 5.5).
 
@@ -495,7 +575,7 @@ layers:
 
 ---
 
-## 4. 13 Agents
+## 5. 13 Agents
 
 ### When to Invoke Each Agent
 
@@ -589,9 +669,9 @@ layers:
 
 ---
 
-## 5. 13 Skills
+## 6. 13 Skills
 
-Skills are invoked with `/skill:<name>` in pi. They provide structured documentation and workflow guidance for recurring patterns. 85.5% of real-world skills contain no executable scripts — they are structured static documentation that shapes agent behavior.
+Skills provide structured documentation and workflow guidance for recurring patterns. Autopilot selects and applies them automatically from the user's prompt and task profile; `/skill:<name>` remains available for explicit inspection or manual invocation. 85.5% of real-world skills contain no executable scripts — they are structured static documentation that shapes agent behavior.
 
 ---
 
@@ -821,7 +901,7 @@ Task: Add rate limiting to the API gateway
 
 ---
 
-## 6. 7 Workflow Templates (A–G)
+## 7. 7 Workflow Templates (A–G)
 
 ### Workflow A: Simple Task
 
@@ -1010,7 +1090,7 @@ good/bad attempt pairs from trace-ledger
 
 ---
 
-## 7. 9-Phase Implementation Roadmap
+## 8. 9-Phase Implementation Roadmap
 
 The system is implemented in 9 phases ordered by dependency. Each phase builds on the previous. **Do not skip phases** — self-evolution (Phase 7) without attribution (Phase 5) is brittle; the judge self-improvement (Phase 9) without the judge itself (Phase 9 prerequisite from Phase 2) is impossible.
 
@@ -1158,7 +1238,7 @@ The system is implemented in 9 phases ordered by dependency. Each phase builds o
 
 ---
 
-## 8. Self-Learning Evaluation Loop (Steps 1–7)
+## 9. Self-Learning Evaluation Loop (Steps 1–7)
 
 This is the closed-loop judge self-improvement system. It enables the evaluation signal to improve without human annotation — based on the Self-Taught Evaluators paper (75.4 → 88.7% RewardBench in 5 iterations) and EvalPlanner.
 
@@ -1282,7 +1362,7 @@ Together, Steps 1–7 form a complete human-label-free self-improvement loop for
 
 ---
 
-## 9. Spawn Score Formula
+## 10. Spawn Score Formula
 
 From AgentSpawn (paper Table 1 and Figure 3). These five weights are from the validated paper — do not adjust without empirical validation.
 
@@ -1327,7 +1407,7 @@ All inputs `norm()` are normalized to [0, 1] before multiplication.
 
 ---
 
-## 10. Judge Calibration Targets
+## 11. Judge Calibration Targets
 
 These targets define when the judge is operating correctly. Missing any target triggers the corresponding action.
 
@@ -1354,7 +1434,7 @@ These targets define when the judge is operating correctly. Missing any target t
 
 ---
 
-## 11. Memory Types and How to Add Entries
+## 12. Memory Types and How to Add Entries
 
 ### Memory Type Reference
 
@@ -1463,7 +1543,7 @@ provenance: "run-id: abc123, failure-attribution.json, category: context_failure
 
 ---
 
-## 12. Research Basis Summary
+## 13. Research Basis Summary
 
 All design decisions in this system trace back to one or more of these 18 papers:
 

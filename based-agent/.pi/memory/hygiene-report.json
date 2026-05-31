@@ -1,0 +1,14 @@
+{
+  "generated_at": "2026-05-30T11:38:32.363Z",
+  "files_scanned": 0,
+  "memories_scanned": 0,
+  "selected_context": [],
+  "quarantined": [],
+  "duplicate_groups": [],
+  "contradiction_pairs": [],
+  "guidance": [
+    "Prefer selected_context over raw memory dumps.",
+    "Do not treat quarantined memories as facts until memory-curator resolves them.",
+    "When selected memories disagree with repo state, repo state wins."
+  ]
+}

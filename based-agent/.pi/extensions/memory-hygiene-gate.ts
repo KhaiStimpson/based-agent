@@ -225,10 +225,10 @@ export default function (pi: ExtensionAPI) {
     writeQuarantineIndex(memoryDir, report);
 
     if (report.quarantined.length > 0 || report.duplicate_groups.length > 0) {
-      pi.notify?.({
-        level: "warning",
-        message: `Memory hygiene gate flagged ${report.quarantined.length} risky and ${report.duplicate_groups.length} duplicate memory groups. See .pi/memory/hygiene-report.json.`
-      });
+      ctx.ui.notify(
+        `Memory hygiene gate flagged ${report.quarantined.length} risky and ${report.duplicate_groups.length} duplicate memory groups. See .pi/memory/hygiene-report.json.`,
+        "warning",
+      );
     }
   });
 }

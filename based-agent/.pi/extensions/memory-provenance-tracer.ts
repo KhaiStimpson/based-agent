@@ -166,7 +166,7 @@ export default function (pi: ExtensionAPI) {
     appendJsonl(path.join(d, `${runId}-memory-events.jsonl`), traceEvent);
   });
 
-  pi.on("session_end", async (event) => {
+  pi.on("agent_end", async (event) => {
     const d = traceDir();
     if (!d || recentEvents.length === 0) return;
 
@@ -187,7 +187,7 @@ export default function (pi: ExtensionAPI) {
       run_id: runId,
       timestamp: new Date().toISOString(),
       suspected_memory_event_ids: suspects,
-      failure_signal: "session_end contained failure-like signal after uncertain memory reads/slices",
+      failure_signal: "agent_end contained failure-like signal after uncertain memory reads/slices",
       attribution_status: "open",
       notes: "Route to failure-attributor before promoting memory, skill, or prompt changes."
     };

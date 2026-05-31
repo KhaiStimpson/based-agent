@@ -205,7 +205,7 @@ export default function (pi: ExtensionAPI) {
     writePacket(basePiDir, retrieve(basePiDir, query), query);
   });
 
-  pi.on("session_end", async () => {
+  pi.on("agent_end", async () => {
     if (!basePiDir) return;
     for (const fp of recentSummaryFiles(basePiDir, 5)) appendCards(basePiDir, cardsFromSummary(fp));
   });

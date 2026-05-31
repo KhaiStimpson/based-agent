@@ -1,0 +1,199 @@
+{
+  "run_id": "",
+  "generated_at": "2026-05-30T23:51:29.981Z",
+  "workflow": "Workflow E/F",
+  "task_profile": {
+    "kinds": [
+      "coding",
+      "debugging",
+      "review",
+      "research",
+      "memory",
+      "topology",
+      "judge",
+      "curriculum",
+      "evolution"
+    ],
+    "risk_flags": [
+      "protected_or_governed_change",
+      "multi_file_or_cross_module",
+      "validation_required",
+      "review_required",
+      "spawn_score_required",
+      "topology_required",
+      "evolution_proposal_required",
+      "curriculum_seed_candidate"
+    ],
+    "spawn_inputs": {
+      "If": 0.75,
+      "Cc": 0.65,
+      "Fc": 0.8,
+      "Oc": 0.65,
+      "Uc": 0.65
+    },
+    "spawn_score": 0.718,
+    "should_spawn": true,
+    "topology": "evolution_pipeline"
+  },
+  "skills": [
+    "repo-validation",
+    "rollout-summary",
+    "failure-attribution",
+    "anti-bystander-review",
+    "lifelong-memory",
+    "skill-lifecycle",
+    "feature-spec",
+    "context-pruning",
+    "topology-authoring",
+    "prospective-agenda",
+    "curriculum-generation",
+    "eval-planning",
+    "evolution-proposal"
+  ],
+  "memory_hits": 0,
+  "research_hits": 5,
+  "capability_plan": [
+    {
+      "name": "config-linter",
+      "when": "startup",
+      "automatic": true,
+      "reason": "validate AGENTS.md/settings/schema drift at session start"
+    },
+    {
+      "name": "memory-hygiene-gate",
+      "when": "startup",
+      "automatic": true,
+      "reason": "prefer clean selected memory and quarantine unstable items"
+    },
+    {
+      "name": "revisitable-memory-router",
+      "when": "startup",
+      "automatic": true,
+      "reason": "surface evidence cards from prior attempt summaries"
+    },
+    {
+      "name": "trace-ledger",
+      "when": "during",
+      "automatic": true,
+      "reason": "record tool calls/results for attribution and summaries"
+    },
+    {
+      "name": "safety-gate",
+      "when": "during",
+      "automatic": true,
+      "reason": "block destructive or protected operations"
+    },
+    {
+      "name": "validation-gate",
+      "when": "completion",
+      "automatic": true,
+      "reason": "enforce done means available checks pass"
+    },
+    {
+      "name": "attempt-summarizer",
+      "when": "completion",
+      "automatic": true,
+      "reason": "emit compact attempt summary for memory/curriculum/evolution"
+    },
+    {
+      "name": "trajectory-auditor",
+      "when": "completion",
+      "automatic": true,
+      "reason": "detect command/extension/validation lessons from traces"
+    },
+    {
+      "name": "context-memory-curator",
+      "when": "completion",
+      "automatic": true,
+      "reason": "keep low-latency typed context memory fresh"
+    },
+    {
+      "name": "context-pack-builder",
+      "when": "planning",
+      "automatic": true,
+      "reason": "build role-aware compressed context pack for complex tasks"
+    },
+    {
+      "name": "memory-slicer",
+      "when": "planning",
+      "automatic": true,
+      "reason": "retrieve scoped typed memory instead of raw transcript context"
+    },
+    {
+      "name": "spawn-controller",
+      "when": "planning",
+      "automatic": true,
+      "reason": "computed spawn score 0.718"
+    },
+    {
+      "name": "topology-runner",
+      "when": "planning",
+      "automatic": true,
+      "reason": "schema-check difficulty-aware workflow before parallel work"
+    },
+    {
+      "name": "review-aggregator",
+      "when": "review",
+      "automatic": true,
+      "reason": "run independent evidence-first review/test aggregation"
+    },
+    {
+      "name": "judge-evolution",
+      "when": "review",
+      "automatic": true,
+      "reason": "use pairwise plan-execute-verdict and bias guards"
+    },
+    {
+      "name": "skill-ecosystem-auditor",
+      "when": "startup",
+      "automatic": true,
+      "reason": "find skill registry gaps and stale skills"
+    },
+    {
+      "name": "skill-internalizer",
+      "when": "completion",
+      "automatic": true,
+      "reason": "turn repeated lessons into governed skill candidates"
+    },
+    {
+      "name": "skill-memory-curator",
+      "when": "completion",
+      "automatic": true,
+      "reason": "promote reusable skill outcomes into skill memory candidates"
+    },
+    {
+      "name": "curriculum-generator",
+      "when": "completion",
+      "automatic": true,
+      "reason": "seed frontier tasks from failures and reusable insights"
+    },
+    {
+      "name": "evolution-scanner",
+      "when": "completion",
+      "automatic": true,
+      "reason": "convert observed improvement opportunities into proposals"
+    },
+    {
+      "name": "evolution-governor",
+      "when": "completion",
+      "automatic": true,
+      "reason": "keep protected changes in approval/promote/rollback lifecycle"
+    },
+    {
+      "name": "prospective-agenda",
+      "when": "completion",
+      "automatic": true,
+      "reason": "record future obligations with trigger and success criteria"
+    }
+  ],
+  "commands_seen": [],
+  "changed_files": [],
+  "inspected_files": [],
+  "failures_this_run": 0,
+  "working_items": 0,
+  "completion_promotion": {
+    "promoted": 0,
+    "proposed": 0,
+    "skipped": 0
+  }
+}
